@@ -48,7 +48,7 @@
 // console.log(x)
 // <---------------------------diff question-------------------------->
 // function first() {
-//     second();
+    //     second();
 //     console.log("First done");
 // }
 
@@ -58,7 +58,44 @@
 // }
 
 // function third() {
-//     console.log("Third done");
+    //     console.log("Third done");
+    // }
+    
+    // first();
+    // <---------------------------diff question-------------------------->
+    //     function a() {
+        //     console.log("a start");
+        //     b();
+//     console.log("a end");
 // }
 
-// first();
+// function b() {
+//     console.log("b start");
+//     c();
+//     d();
+//     console.log("b end");
+// }
+
+// function c() {
+//     console.log("c");
+// }
+
+// function d() {
+//     console.log("d");
+// }
+
+// a();
+// <---------------------------diff question-------------------------->
+
+// function foo() {
+//     var a = 10;
+//     var b = 20;
+//     var c = 30;
+//     return a + b;  // ONLY the value 50 is returned
+// }
+
+// var result = foo();
+// console.log(result);  // 50
+// console.log(a);       // ReferenceError — a doesn't exist outside foo
+// console.log(b);       // ReferenceError — b doesn't exist outside foo
+// console.log(c);       // ReferenceError — c doesn't exist outside foo
