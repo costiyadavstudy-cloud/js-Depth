@@ -74,3 +74,12 @@ console.log(typeof baz);   // Predict: ?
 // function 
 // number
 // number
+
+greet();
+var greet = function() { console.log("first"); };
+function greet() { console.log("second"); }
+greet();
+
+// //output: 
+// // second
+// // first
