@@ -313,9 +313,350 @@ inner();
 // Next: 04_study_protocols_and_meta.js
 // ============================================================================
 
-let a = 10
-function b(){
-    let c = 30
-}
+/* ============================================================================
+ * DAY 3 — ALL QUESTIONS AND OUTPUTS
+ *
+ * Complete record of every question asked, every code snippet, and the
+ * correct outputs. Use this as a self-test resource: cover the OUTPUT
+ * section with your hand, predict, then verify.
+ *
+ * Sessions covered today:
+ *   A. Hoisting Quiz — re-answers (Q5, Q6)
+ *   B. Ep 5 Warmup — retrieval round (4 conceptual + 4 short-form)
+ *   C. Ep 5 Formal Quiz (Q1–Q7)
+ * ============================================================================
+ */
 
-console.log(a)
+
+/* ============================================================================
+ * SESSION A — HOISTING QUIZ (re-answers)
+ * ============================================================================
+ */
+
+
+// ─── Q5 — function declaration vs var collision ────────────────────────────
+
+console.log(typeof foo);
+var foo = "hello";
+function foo() {}
+console.log(typeof foo);
+
+// OUTPUT:
+//   "function"
+//   "string"
+//
+// KEY RULE:
+//   Function declarations take PRECEDENCE over var declarations on
+//   identifier collision in the creation phase.
+//
+// MECHANISM:
+//   Creation phase: var foo → undefined, then function foo() {} overwrites
+//                   the binding with reference to the function object.
+//   Execution phase: typeof foo → "function". Then `foo = "hello"`
+//                   reassigns it to a string. Final: typeof → "string".
+
+
+// ─── Q6 — function declaration + function expression, same name ─────────────
+
+greet();
+var greet = function () { console.log("first"); };
+function greet() { console.log("second"); }
+greet();
+
+// OUTPUT:
+//   "second"
+//   "first"
+//
+// MECHANISM:
+//   Creation phase: var greet → undefined, then function greet() {}
+//                   overwrites binding with reference to function object
+//                   logging "second" (function decl precedence).
+//   Execution phase:
+//     line 1: greet() → invokes current binding → "second"
+//     line 2: new function object logging "first" created, greet is
+//             REASSIGNED to point to it
+//     line 3: function declaration — no-op at runtime
+//     line 4: greet() → invokes current binding → "first"
+//
+// LESSON:
+//   The two calls differ because `greet` was REASSIGNED between them.
+
+
+/* ============================================================================
+ * SESSION B — EP 5 WARMUP (single-question format after restart)
+ * ============================================================================
+ */
+
+
+// ─── Q4 — this === window in browser top-level ──────────────────────────────
+
+// What does this evaluate to in a browser at the top level?
+
+this === window
+
+// OUTPUT:
+//   true
+//
+// WHY:
+//   Both `this` and `window` are bindings that hold references to the
+//   same object (the global object). === compares references. Same
+//   reference → true.
+
+
+// ─── Q5 — globalThis ────────────────────────────────────────────────────────
+
+// What is globalThis?
+//
+// ANSWER:
+//   A universal reference to the global object that works in any
+//   JS environment (browser, Node, Web Workers).
+
+
+// ─── Q6 — why does globalThis exist? ────────────────────────────────────────
+
+// Different environments use different names for the global object:
+//   - browser: window
+//   - Node:    global
+//   - Workers: self
+//
+// globalThis was introduced so the same code could reference the global
+// object in ANY environment without conditional checks for the name.
+
+
+/* ============================================================================
+ * SESSION C — EP 5 FORMAL QUIZ (Q1–Q7)
+ * ============================================================================
+ */
+
+
+// ─── Q1 — var vs let at global level + this ─────────────────────────────────
+
+var a = 10;
+let b = 20;
+
+console.log(window.a);
+console.log(window.b);
+console.log(this.a === a);
+
+// OUTPUT:
+//   10
+//   undefined
+//   true
+//
+// MECHANISM:
+//   - var a at global → becomes a PROPERTY of window. window.a → 10.
+//   - let b at global → does NOT attach to window; lives in Script scope.
+//     window.b → undefined.
+//   - this === window at top level, so this.a and a both read window.a → true.
+
+
+// ─── Q2 — `this` inside a regular function call ─────────────────────────────
+
+function test() {
+  console.log(this);
+}
+test();
+
+// OUTPUT:
+//   Non-strict mode: Window {...}    (the global object)
+//   Strict mode:     undefined
+//
+// MECHANISM:
+//   When a function is called as a plain `fn()` (no obj.fn, no new,
+//   no .call/.apply), JS uses the "default this" rule:
+//     - non-strict: this = global object
+//     - strict:     this = undefined
+//
+// ONE-LINE RULE:
+//   `this` inside a function depends on HOW the function is called,
+//   not where it is written.
+
+
+// ─── Q3 — accessing outer var from inside a function ───────────────────────
+
+var x = 5;
+function showX() {
+  console.log(x);
+}
+showX();
+
+// OUTPUT:
+//   5
+//
+// MECHANISM (scope chain):
+//   showX has no local x. It walks UP the scope chain to the parent
+//   (global) EC and finds x = 5 there.
+
+
+// ─── Q4 — direct assignment to window.greeting ─────────────────────────────
+
+window.greeting = "namaste";
+console.log(greeting);
+
+function show() {
+  console.log(greeting);
+}
+show();
+
+// OUTPUT:
+//   "namaste"
+//   "namaste"
+//
+// MECHANISM:
+//   Assigning window.greeting adds `greeting` as a PROPERTY of the
+//   global object — same effect as `var greeting = "namaste"` at the
+//   top level.
+//   Both bare `greeting` (outside) and `greeting` inside show() are
+//   resolved via the scope chain → find it on the global object.
+
+
+// ─── Q5 — this.x vs bare x in a function, with shadowing ───────────────────
+
+var lang = "Hindi";
+
+function show() {
+  console.log(this.lang);
+  console.log(lang);
+}
+show();
+
+// OUTPUT:
+//   "Hindi"
+//   "Hindi"
+//
+// MECHANISM:
+//   this.lang   → this is window → reads window.lang property → "Hindi"
+//   lang        → scope chain lookup → finds global lang → "Hindi"
+//   Same destination, different mechanisms.
+
+
+// Variation — add `var lang = "English"` inside show():
+
+var lang = "Hindi";
+
+function show() {
+  var lang = "English";       // local lang SHADOWS global lang
+  console.log(this.lang);
+  console.log(lang);
+}
+show();
+
+// OUTPUT:
+//   "Hindi"     ← this.lang still reads window.lang (unchanged)
+//   "English"   ← bare lang resolves to local first
+//
+// LESSON:
+//   `this.x` is a property lookup on a specific object (window).
+//   Bare `x` is a scope chain lookup, which finds the closest match.
+//   These can return DIFFERENT values when shadowing exists.
+
+
+// ─── Q6 — nested functions and scope chain walk ─────────────────────────────
+
+var a = "global";
+
+function outer() {
+  var a = "outer";
+  
+  function inner() {
+    console.log(a);
+  }
+  inner();
+}
+outer();
+
+// OUTPUT:
+//   "outer"
+//
+// MECHANISM:
+//   inner has no local a → walks up → finds a in outer's EC → "outer".
+//
+// VARIATION — remove `var a = "outer";` from inside outer():
+//   OUTPUT: "global"
+//   inner walks up → not in outer either → walks further to global EC
+//   → finds a = "global".
+
+
+// ─── Q7 — assignment without var: reassigns parent's binding ────────────────
+
+function outer() {
+  var x = 10;
+  
+  function inner() {
+    console.log(x);
+    x = 20;            // NO `var` — assignment, not declaration
+  }
+  
+  inner();
+  console.log(x);
+}
+outer();
+
+// OUTPUT:
+//   10
+//   20
+//
+// MECHANISM:
+//   inner's first log:  scope chain → finds x in outer → reads 10.
+//   `x = 20;` (no var): scope chain → finds x in outer → REASSIGNS to 20.
+//                       Outer's x is now 20.
+//   outer's log:        reads its own x → 20.
+//
+// CRITICAL RULE:
+//   No keyword (var/let/const) → assignment, not declaration.
+//   Walks up scope chain. Modifies the existing binding.
+//   If nothing is found in non-strict mode, JS creates the variable
+//   as a property of window — this is an "accidental global", a
+//   very common bug.
+//   In strict mode: throws ReferenceError instead.
+//
+// COMPARE — same code WITH `var` inside inner:
+//
+//   function outer() {
+//     var x = 10;
+//     function inner() {
+//       console.log(x);    // undefined — hoisting in inner makes local x
+//                          // exist as undefined before the assignment line
+//       var x = 20;        // local x — does NOT affect outer's x
+//     }
+//     inner();
+//     console.log(x);      // 10 — outer's x untouched
+//   }
+//
+//   OUTPUT: undefined, 10
+
+
+/* ============================================================================
+ * KEY CONCEPTS CRYSTALLIZED TODAY
+ * ============================================================================
+ */
+
+// 1. Function declarations beat var declarations on identifier collision
+//    (creation phase precedence).
+//
+// 2. var at top level → property of global object (window in browser).
+//    let / const at top level → live in Script scope, NOT on window.
+//
+// 3. `this` at the top level (browser) holds a reference to window.
+//    Inside a regular function call: this = window (non-strict), or
+//    undefined (strict).
+//
+// 4. Bare identifier lookup uses the SCOPE CHAIN — not `this`.
+//    Walks from local EC → parent → grandparent → global.
+//
+// 5. `this.x` (property lookup) and bare `x` (scope chain lookup) are
+//    two DIFFERENT mechanisms that often give the same result but
+//    NOT always — shadowing breaks the equivalence.
+//
+// 6. Assignment without var/let/const → walks scope chain and reassigns
+//    parent binding (or creates accidental global in non-strict mode).
+//
+// 7. globalThis = universal name for the global object across all
+//    JS environments.
+
+
+// ============================================================================
+// END OF DAY 3
+// Day 4 opens with: revisit of scope chain mechanics, Ep 5 close-out,
+// then Ep 6 (undefined vs not defined) starts on Day 5.
+// ============================================================================
