@@ -1,297 +1,266 @@
 /* =========================================================================
-   DAY 4 — STUDY LOG
-   Vardhan | Namaste JavaScript (Akshay Saini) | Month 1: JS Depth
-   Date: Sat, 30 May 2026
-   Episode: Ep 6 — "undefined vs not defined in JS"
+   EP 6 — FINAL NOTES + QUIZ LOG
+   "undefined vs not defined in JS" | Namaste JavaScript (Akshay Saini)
+   Vardhan | Month 1: JS Depth | 30 May 2026
+   =========================================================================
+
+   HOW TO USE THIS FILE:
+     PART A  - the ONE main idea of the episode (read first)
+     PART B  - full concept reference (the 13 concepts)
+     PART C  - every question mapped to OUTPUT -> CONCEPT -> MAIN CONCEPT
+     PART D  - your weak spot + precision pattern to fix
+     PART E  - next steps
    ========================================================================= */
 
 
-/* -------------------------------------------------------------------------
-   0. WHAT HAPPENED TODAY
-   -------------------------------------------------------------------------
-   - Q7 (Day-3 carryover: outer/inner scope-chain assignment) was DROPPED
-     by your choice. NOTE: the concept underneath it (a failed scope-chain
-     lookup) reappears as Ep 6's "not defined", so it is not truly skipped.
-   - Ran Ep 6 first as an informal DIAGNOSTIC PRETEST (section 2).
-   - Then formalised it into a FIXED 10-question quiz (section 3).
-   - Negotiated and locked a NEW QUIZ CONTRACT (section 4).
-   - Cleared up Ep numbering confusion: the YouTube playlist has an intro
-     video at slot 1, so "Ep 6" physically sits at playlist position 7.
-     Navigate by the TITLE ("undefined vs not defined"), not the slot number.
+/* ═════════════════════════════════════════════════════════════════════════
+   PART A — THE MAIN CONCEPT (the spine of Ep 6)
+   ═════════════════════════════════════════════════════════════════════════
 
-   CURRENT STATUS:
-   - Formal Ep 6 quiz PAUSED at Q6/10. Q1–Q5 graded below.
-   - This is still PRE-WATCH. Ep 6 video not yet watched.
-   ------------------------------------------------------------------------- */
+   A name that is DECLARED exists in memory and READS as a value — possibly
+   the placeholder `undefined`.
+   A name that was NEVER declared does not exist, so reading it THROWS a
+   ReferenceError ("not defined").
+
+   `undefined`  = a REAL VALUE the engine places during the creation phase,
+                  meaning "declared but not yet assigned".
+   `not defined`= an ERROR STATE (not a value): the lookup found nothing.
+
+   The single pivot between them is: WAS THE NAME DECLARED?
+   ═════════════════════════════════════════════════════════════════════════ */
 
 
-/* -------------------------------------------------------------------------
-   1. CONCEPTS CRYSTALLISED (Day 4)
-   -------------------------------------------------------------------------
-   1. `undefined` is a REAL VALUE, not "empty" and not "nothing".
-      It is the engine's PLACEHOLDER, written into a variable's memory slot
-      during the CREATION (memory) phase, before any line of code runs.
-      It means: "this name is declared but not yet assigned a value."
+/* ═════════════════════════════════════════════════════════════════════════
+   PART B — CONCEPT REFERENCE (13)
+   ═════════════════════════════════════════════════════════════════════════
 
-   2. `not defined` is NOT a value. It is the state of a name that was never
-      declared anywhere reachable. Accessing it -> ReferenceError.
+   1.  `undefined` is a REAL VALUE (not "empty", not "nothing"): the engine's
+       placeholder, written into a variable's slot during the CREATION phase,
+       before any line runs. Means "declared but not yet assigned".
 
-   3. THE PIVOT IS DECLARATION:
-        declared      -> exists in memory -> reading it returns its value
-                         (possibly `undefined`)
-        never declared -> no record exists -> reading it throws (not defined)
+   2.  `not defined` is NOT a value. It is the state of a name never declared
+       anywhere reachable. Accessing it -> ReferenceError.
 
-   4. `typeof undefined` -> "undefined" (a STRING).
-      undefined has its OWN dedicated type. That is the proof it is a real
-      value ("something"), not absence.
+   3.  THE PIVOT IS DECLARATION:
+         declared       -> exists -> reading returns its value (maybe `undefined`)
+         never declared -> no record -> reading throws (not defined)
 
-   5. `var p;` with NO initializer is a RUNTIME NO-OP:
-        - the DECLARATION half was already handled in the creation phase
-        - there is no initializer to execute, so the line does nothing at runtime
-      `var p = 5;` is NOT a no-op:
-        - declaration half: still creation-phase (no-op by itself)
-        - INITIALIZER `= 5`: this is the part that actually executes at runtime
-      => the only difference is the initializer.
+   4.  `typeof undefined` -> the STRING "undefined". undefined has its OWN type;
+       that is the proof it is a real value ("something"), not absence.
 
-   6. An UNCAUGHT ReferenceError HALTS execution. Lines after the throw do
-      not run.
+   5.  `var p;` (no initializer) is a RUNTIME NO-OP (declaration already handled
+       in the creation phase; nothing to execute).
+       `var p = 5;` is NOT a no-op: the INITIALIZER `= 5` runs at runtime.
+       => the only difference is the initializer.
 
-   7. There is only ONE `undefined`. Whether the engine sets it (creation
-      phase) or you assign it manually, it is the same value.
+   6.  An UNCAUGHT ReferenceError HALTS execution. Lines after it do not run.
 
-   8. Manually assigning `x = undefined` is BAD PRACTICE. It destroys the
-      engine's signal of "not yet assigned" — you can no longer tell
-      "engine never touched this" from "I deliberately emptied it".
-      (For deliberate emptiness there is a separate value, `null` — file away,
-       it is beyond this episode.)
+   7.  There is only ONE `undefined`. Engine-set or you-set, same value.
 
-   9. A `var` declared INSIDE a function exists only inside that function's
-      context. Accessing it from outside -> not defined.
+   8.  Manually assigning `x = undefined` is BAD PRACTICE: it destroys the
+       "not yet assigned" signal. (For deliberate emptiness use `null` — set
+       by YOU, never by the engine.)
 
-   10. VOCAB PRECISION: the term is "ALLOCATED" (space reserved in the
-       creation phase), not "stored". Then the placeholder `undefined` is
-       placed into that allocated slot.
-   ------------------------------------------------------------------------- */
+   9.  A `var` declared INSIDE a function exists only in that function's
+       context. Accessing it from outside -> not defined.
 
+   10. VOCAB: the term is "ALLOCATED" (space reserved in the creation phase),
+       NOT "stored". Then the placeholder `undefined` is placed in that slot.
 
-/* -------------------------------------------------------------------------
-   2. PRE-QUIZ DIAGNOSTIC (informal, before the fixed quiz)
-   ------------------------------------------------------------------------- */
+   11. JS is LOOSELY (weakly) TYPED: a variable is not bound to a data type;
+       the type rides on the VALUE, not the variable. One var can hold a
+       number, then a string, then a boolean.
 
-/* D1 ─────────────────────────────────────────────────────────
-     console.log(a);   // line 1
-     var a = 5;
-     console.log(a);   // line 3
-     console.log(b);   // line 4   (b never declared)
+   12. DON'T CONFLATE THE THREE STATES:
+         undefined   -> declared + allocated, not yet assigned  (a VALUE)
+         not defined -> never declared                          (an ERROR)
+         null        -> deliberate emptiness, set by you         (a VALUE)
 
-   OUTPUT:
-     undefined
-     5
-     ReferenceError: b is not defined   // line 4 throws; halts here
-
-   SCORE: 6/10  (trace correct; you SKIPPED the required justification of
-                 "undefined" vs "not defined" — the actual point of Ep 6)
-*/
-
-/* D1b — definition check: "what is undefined vs not defined?"
-   MISCONCEPTION CAUGHT: you called undefined an "empty value".
-   FIX: undefined is not empty/absence — it is a present placeholder VALUE
-        that the engine puts into the slot.
-   SCORE: 7/10
-*/
-
-/* D1c — `typeof undefined` -> "undefined"; therefore undefined is "something".
-   (Teacher note: I over-drilled this single 5-second fact across turns and
-    owned it. Fact itself is locked.)
-*/
-
-/* D2 ─────────────────────────────────────────────────────────
-     console.log(p);   // 1
-     var p;            // declared, NO initializer
-     console.log(p);   // 2
-     p = 7;
-     console.log(p);   // 3
-
-   OUTPUT:
-     undefined
-     undefined
-     7
-
-   SCORES:
-     trace ............................. 10/10
-     "why is `var p;` a no-op" ..........  8/10  (you said "already declared";
-                                                  missed the "no initializer" half)
-     follow-up: if it were `var p = 5;`?   9/10  (correct: NOT a no-op, the
-                                                  initializer `= 5` runs at runtime)
-*/
-
-/* D3 ─────────────────────────────────────────────────────────
-     function calc() {
-       var total;
-       console.log(total);   // 1
-       console.log(count);   // 2   (count never declared)
-     }
-     calc();
-
-   OUTPUT:
-     undefined
-     ReferenceError: count is not defined   // line 2 throws; halts
-
-   SCORE: 8/10
-   YOUR MODEL: the "bus" analogy (seat = declaration, napkin = undefined,
-               passenger = value). Good model.
-   REFINEMENT:
-     - the napkin is placed by the CONDUCTOR (engine, creation phase),
-       not the passenger (undefined exists before any value does)
-     - "not defined" = a FAILED LOOKUP: the engine searches the whole scope
-       chain and finds nothing — not merely "no declaration"
-*/
+   13. `typeof` IS SAFE ON UNDECLARED NAMES: most reads throw on a name that
+       was never declared, but `typeof` returns the string "undefined" instead
+       of throwing. Lets you check existence without crashing.
+         console.log(b);        // ReferenceError: b is not defined
+         console.log(typeof b); // "undefined"  (no throw)
+   ═════════════════════════════════════════════════════════════════════════ */
 
 
-/* -------------------------------------------------------------------------
-   3. FORMAL Ep 6 QUIZ  (fixed bank — 10 questions)
-   ------------------------------------------------------------------------- */
+/* ═════════════════════════════════════════════════════════════════════════
+   PART C — QUESTION -> OUTPUT -> CONCEPT MAP
+   (Formal Ep 6 quiz, 10/10. Scores: 9,10,8,9,8,9,9,6,8,9  ->  avg ~8.5/10)
+   ═════════════════════════════════════════════════════════════════════════ */
 
-/* Q1 of 10 ───────────────────────────────────────────────────
+/* Q1 ──────────────────────────────────────────────────────────
      var a;
      console.log(a);
-
-   OUTPUT:
-     undefined
-
-   SCORE: 9/10
-   KEY: declared, never assigned -> placeholder `undefined`, set in the
-        CREATION phase. ("as default" slightly blurs WHEN it is set.)
+   OUTPUT:        undefined
+   CONCEPT(S):    #1
+   MAIN CONCEPT:  a declared var holds the placeholder `undefined` until assigned.
+   SCORE:         9/10
 */
 
-/* Q2 of 10 ───────────────────────────────────────────────────
+/* Q2 ──────────────────────────────────────────────────────────
      console.log(b);
      var b = 5;
      console.log(b);
-
-   OUTPUT:
-     undefined
-     5
-
-   SCORE: 10/10
-   KEY: line 1 does not throw because b is allocated with `undefined` in the
-        creation phase, so it EXISTS (lookup succeeds). If b were never
-        declared, the engine would have no record of it -> error.
+   OUTPUT:        undefined
+                  5
+   CONCEPT(S):    #1, #3  (+ hoisting)
+   MAIN CONCEPT:  HOISTING — a var is allocated (as undefined) before execution,
+                  so accessing it before its line gives `undefined`, not an error.
+   SCORE:         10/10
 */
 
-/* Q3 of 10 ───────────────────────────────────────────────────
+/* Q3 ──────────────────────────────────────────────────────────
      console.log("start");
-     console.log(m);        // m never declared
+     console.log(m);          // m never declared
      console.log("end");
-
-   OUTPUT:
-     start
-     ReferenceError: m is not defined   // thrown at LINE 2
-     // "end" does NOT print — the uncaught error halts execution
-
-   SCORE: 7/10 -> revised 8/10
-   ISSUE: you wrote the error was "thrown by third line" but also "stops
-          after second line" — self-contradiction. The throw is at LINE 2.
-   LESSON: in code, "it was a typo" is the postmortem on a shipped bug;
-           the artifact you submit is what is judged. Proofread.
+   OUTPUT:        start
+                  ReferenceError: m is not defined   (thrown at LINE 2)
+                  // "end" does NOT print
+   CONCEPT(S):    #2, #6
+   MAIN CONCEPT:  an UNCAUGHT ReferenceError halts execution; later lines never run.
+   SCORE:         8/10  (had written the error came from "line 3"; it is line 2)
 */
 
-/* Q4 of 10 ───────────────────────────────────────────────────
+/* Q4 ──────────────────────────────────────────────────────────
      var c;
      console.log(c);
      c = 10;
      console.log(c);
      c = undefined;
      console.log(c);
-
-   OUTPUT:
-     undefined
-     10
-     undefined
-
-   SCORE: 9/10
-   KEYS:
-     - last-line undefined is the SAME value the engine used at the start
-       (there is only one `undefined`)
-     - manual `c = undefined` is BAD PRACTICE: destroys the "not yet assigned"
-       signal; you lose the ability to tell "untouched" from "deliberately
-       emptied". (Use `null` for deliberate emptiness — beyond this episode.)
+   OUTPUT:        undefined
+                  10
+                  undefined
+   CONCEPT(S):    #7, #8
+   MAIN CONCEPT:  undefined is a single real value; do NOT assign it manually
+                  (it is the engine's "not yet assigned" signal).
+   SCORE:         9/10
 */
 
-/* Q5 of 10 ───────────────────────────────────────────────────
+/* Q5 ──────────────────────────────────────────────────────────
      function test() {
        console.log(x);
        var x = 5;
-       console.log(y);     // y never declared
+       console.log(y);        // y never declared
      }
      test();
-
-   OUTPUT:
-     undefined
-     ReferenceError: y is not defined   // thrown at the console.log(y) line
-
-   SCORE: 8/10
-   KEY (rule): declared -> exists in memory -> reads `undefined`;
-               never declared -> no record -> error.
-   REGRESSION FLAGGED: you wrote x's value was "STORED" — the term is
-                       "ALLOCATED". (You had used "allocated" correctly in D2.)
-   GOOD: you self-corrected x -> y in the error message (proofreading applied).
+   OUTPUT:        undefined
+                  ReferenceError: y is not defined
+   CONCEPT(S):    #1, #2, #3
+   MAIN CONCEPT:  declared -> exists -> reads `undefined`; never declared ->
+                  no record -> error. (The pivot is declaration.)
+   SCORE:         8/10  (said "stored"; the term is "allocated")
 */
 
-/* Q6 of 10 ───────────────────────────────────────────── PENDING ──
-   (Flag: part 2 may go slightly beyond the Ep 6 video; core JS regardless.)
-
+/* Q6 ──────────────────────────────────────────────────────────
      console.log(typeof a);
-     console.log(typeof b);    // b never declared
+     console.log(typeof b);   // b never declared
      var a = 10;
-
-   STATUS: POSED, NOT YET ANSWERED. (Answer key intentionally omitted —
-           this is your live question.)
-   Sub-parts:
-     1. both outputs? (does either line throw?)
-     2. one line: console.log(b) would throw, yet typeof b does not — why?
+   OUTPUT:        undefined    // typeof a -> string "undefined"
+                  undefined    // typeof b -> string "undefined", NO throw
+   CONCEPT(S):    #4, #13
+   MAIN CONCEPT:  `typeof` is the SAFE operator — returns "undefined" for a
+                  name that does not exist instead of throwing.
+   SCORE:         9/10
 */
 
-/* Q7–Q10 of 10 — NOT YET POSED. */
+/* Q7 ──────────────────────────────────────────────────────────
+     var x;
+     console.log(x);
+     x = 5;
+     x = "five";
+     console.log(x);
+   OUTPUT:        undefined
+                  five
+   CONCEPT(S):    #11
+   MAIN CONCEPT:  JS is LOOSELY TYPED — a variable is not bound to a type; the
+                  type rides on the value.
+   SCORE:         9/10
+*/
+
+/* Q8 ─────────────────────────────────────────────── WEAK SPOT ──
+     var a = 1;
+     var b;
+     console.log(a, b, c);    // c never declared
+   OUTPUT:        ReferenceError: c is not defined
+                  // NOTHING prints — not even "1 undefined"
+   CONCEPT(S):    #2  (+ argument evaluation order)
+   MAIN CONCEPT:  console.log evaluates ALL its arguments BEFORE the call; an
+                  undeclared name throws DURING evaluation, so the call never
+                  runs and nothing prints. (`b` being undefined is fine; only
+                  the UNDECLARED `c` is the problem.)
+   SCORE:         6/10  <-- REVISIT THIS ONE
+*/
+
+/* Q9 ──────────────────────────────────────────────────────────
+     function greet(name) {
+       console.log("Hi " + name);
+     }
+     var msg = greet("Vardhan");
+     console.log(msg);
+   OUTPUT:        Hi Vardhan        // literal is "Hi " — note the SPACE
+                  undefined
+   CONCEPT(S):    default undefined return  (related to #1)
+   MAIN CONCEPT:  a function with NO `return` returns `undefined` by default;
+                  logging != returning.
+   SCORE:         8/10  (dropped the space -> wrote "HiVardhan")
+*/
+
+/* Q10 ─────────────────────────────────────────────── CAPSTONE ──
+     var x = 10;
+     console.log(x);
+     console.log(y);
+     var y;
+     console.log(z);          // z never declared
+   OUTPUT:        10
+                  undefined
+                  ReferenceError: z is not defined
+   CONCEPT(S):    #1, #2, #3, #6  (synthesis)
+   MAIN CONCEPT:  THE THREE STATES at once —
+                    x = has a value (declared + assigned before the log)
+                    y = undefined  (declared/hoisted, never assigned)
+                    z = not defined (never declared -> error -> halt)
+   SCORE:         9/10  (spelling slips)
+*/
+
+/* ─── DIAGNOSTICS (informal, before the fixed quiz) ───────────────
+   D1:  console.log(a); var a=5; console.log(a); console.log(b);
+        -> undefined, 5, ReferenceError (b not defined)        [#1,#2,#6]
+        Also surfaced: undefined is NOT "empty"; typeof undefined -> "undefined".
+   D2:  console.log(p); var p; console.log(p); p=7; console.log(p);
+        -> undefined, undefined, 7                              [#1,#5]
+        Key: `var p;` is a runtime no-op; `var p = 5;` is not (the initializer runs).
+   D3:  function calc(){ var total; console.log(total); console.log(count); } calc();
+        -> undefined, ReferenceError (count not defined)        [#1,#2,#9]
+        Key: "not defined" = a FAILED LOOKUP, not merely "no declaration".
+   ───────────────────────────────────────────────────────────────── */
 
 
-/* -------------------------------------------------------------------------
-   4. NEW QUIZ CONTRACT  (locked in, applies going forward)
-   -------------------------------------------------------------------------
-   - Fixed bank of 10–15 questions, written in advance. Total count shown first.
-   - Questions are NOT created reactively and are NOT modified after your answer.
-   - No question references another (no chaining / "as in the last question...").
-   - All sub-parts stated up front, 1–3 per question.
-   - Any "why / explain the mechanism" demand is baked INTO the question as a
-     sub-part (rigor moves inside the question; the difficulty bar does NOT drop).
-   - Short, precise explanations — no walls of text.
-   - /10 rating on every question.
+/* ═════════════════════════════════════════════════════════════════════════
+   PART D — WEAK SPOT + PRECISION PATTERN
+   ═════════════════════════════════════════════════════════════════════════
 
-   (Inherited rules still active: acknowledge what's right before what's wrong;
-    "I don't know" is valid and preferred over a confident guess; easier start,
-    escalate; stay in episode scope, flag previews.)
-   ------------------------------------------------------------------------- */
+   WEAK SPOT (one concept to firm up):
+     Q8 — WHY nothing prints when one argument is undeclared. Mechanism:
+     arguments are evaluated BEFORE the call; an undeclared name throws during
+     evaluation and aborts the whole line.
 
-
-/* -------------------------------------------------------------------------
-   5. REPEATED MISTAKES TO WATCH (carried + new)
-   -------------------------------------------------------------------------
-   - "stored" instead of "allocated"  (REGRESSED today after using it right)
-   - Submitting only HALF a question (skipping the justification sub-part)
-   - Echoing the teacher's word instead of DERIVING it ("it is something")
-   - Self-contradicting answers from rushing (Q3: "third line" vs "second line")
-   - Sloppy spelling/grammar = rushed thinking
-     (e.g. "sujesting", "introduduce", "didn't assigned", "throw a error")
-   - Misreading numbers (read "Ep 6" as "Ep 8") — in code a misread index is a bug
-   ------------------------------------------------------------------------- */
+   PRECISION PATTERN (not concepts — carefulness):
+     - dropped a space          ("HiVardhan" vs "Hi Vardhan")
+     - "stored" vs "allocated"  (regressed after using it correctly)
+     - self-contradiction       (Q3: "line 3" vs "line 2")
+     - spelling/grammar slips   ("loggin", "loosly", "didn't assigned")
+   Understanding is AHEAD of carefulness. In code, carelessness reads identically
+   to not-knowing — the bug ships either way. Proofread before you submit.
+   ═════════════════════════════════════════════════════════════════════════ */
 
 
-/* -------------------------------------------------------------------------
-   6. NEXT STEPS (Day 5 plan)
-   -------------------------------------------------------------------------
-   1. Finish the Ep 6 quiz (resume at Q6, then Q7–Q10).
-   2. WATCH Ep 6 once at 1x. Watch specifically for: HOW Akshay describes the
-      engine deciding a name is "not defined" (the failed-lookup mechanism).
-   3. Day 5 = full graded Ep 6 cycle, starting on the "not defined" side, and
-      test whether your "bus" model survives contact with the real lookup.
-   ------------------------------------------------------------------------- */
+/* ═════════════════════════════════════════════════════════════════════════
+   PART E — NEXT STEPS
+   ═════════════════════════════════════════════════════════════════════════
+   1. WATCH Ep 6 once at 1x (this quiz was all PRE-WATCH). Watch for HOW Akshay
+      describes the engine deciding a name is "not defined" (the failed lookup).
+   2. Re-derive Q8 cold to confirm the argument-evaluation mechanism stuck.
+   3. Day 5 = full graded Ep 6 cycle, starting on the "not defined" side.
+   ═════════════════════════════════════════════════════════════════════════ */
