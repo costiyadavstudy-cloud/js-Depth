@@ -221,3 +221,233 @@
 //    of that single fact plus the scope chain."
 
 
+// ===========================================================================
+// EP 9 QUIZ BANK -- all 12 questions, Vardhan's answers, scores, models.
+// Block Scope & Shadowing. Rubric: 3 (result) + 5 (mechanism) + 2 (precision).
+// Scores: 9.5, 5, 9.5, 9.5, 9.5, 6.5, 9, 6, 9, 10, 9.5, 9.5  ->  avg ~8.5/10
+// (Ep 8 avg was ~7.6, so this is a clear step up.)
+// ===========================================================================
+
+
+// ---------------------------------------------------------------------------
+// Q1 -- 9.5/10  (3 + 4.5 + 2)
+// ---------------------------------------------------------------------------
+//   { let a = 10; }
+//   console.log(a);
+//
+// ANSWER: ReferenceError. The "not defined" kind, because let is block-scoped --
+//   a lives only in the block, gone after it, so global lookup finds nothing.
+// LOST 0.5: did not spell out that "not defined" means resolution walked the
+//   whole chain and found NO reachable binding (vs TDZ = binding exists but
+//   uninitialized).
+// MODEL: ReferenceError, "not defined". `let a` is block-scoped; once the block
+//   ends the binding is gone. console.log(a) searches global + up the chain,
+//   finds no reachable a -> "a is not defined".
+
+
+// ---------------------------------------------------------------------------
+// Q2 -- 5/10  (3 + 2 + 0)   <-- session low; misconception, later corrected
+// ---------------------------------------------------------------------------
+//   { var b = 10; }
+//   console.log(b);
+//
+// ANSWER: 10, "because var is global no matter where it is created".
+// THE ERROR: "var is global no matter where" is FALSE. var is FUNCTION-scoped;
+//   it ignores BLOCK boundaries but respects FUNCTION boundaries. It is global
+//   HERE only because there is no enclosing function.
+// MODEL: prints 10. The block is not a scope boundary for var, so `var b = 10`
+//   attaches to the nearest function scope -- or global if none. No function
+//   here -> b is global -> reachable after the block. Inside a function this
+//   same b would be local and unreachable outside.
+
+
+// ---------------------------------------------------------------------------
+// Q3 -- 9.5/10  (3 + 5 + 1.5)
+// ---------------------------------------------------------------------------
+//   let p = 1;
+//   { let p = 2; { console.log(p); } }
+//
+// ANSWER: 2. Lookup starts in the innermost block, no p, climbs to lexical
+//   parent (p=2), finds it, STOPS without climbing to the global p=1.
+// LOST 0.5: called the inner block an "inner block function" -- a block is not
+//   a function (that distinction is the spine of this episode).
+// MODEL: prints 2. Resolution starts innermost (no p), climbs to the parent
+//   block (p=2), resolves and stops -- first match wins, never reaches global.
+
+
+// ---------------------------------------------------------------------------
+// Q4 -- 9.5/10  (3 + 5 + 1.5)
+// ---------------------------------------------------------------------------
+//   let q = 5;
+//   { q = 10; console.log(q); }
+//   console.log(q);
+//
+// ANSWER: 10, 10. No new binding (no declaration); q got reassigned. Engine
+//   climbs the chain to the outer q and reassigns it.
+// LOST 0.5: said the value "changed in both block and global scope" -- implies
+//   two bindings. There is ONE q (the outer), visible from two places.
+// MODEL: both 10. `q = 10` is an assignment, not a declaration -> no new
+//   binding. Resolved up the chain to the single outer q and reassigned to 10.
+
+
+// ---------------------------------------------------------------------------
+// Q5 -- 9.5/10  (3 + 4.5 + 2)
+// ---------------------------------------------------------------------------
+//   let r = 1;
+//   { console.log(r); let r = 2; }
+//
+// ANSWER: ReferenceError, TDZ kind. Engine finds r in the block scope (it
+//   exists) but it is not yet initialized -> TDZ. Not "not defined" because r
+//   IS declared, just used before initialization.
+// LOST 0.5: did not name WHY the block already has its own r -- `let r = 2` is
+//   HOISTED to the top of the block (uninitialized), which is what makes it
+//   shadow the outer r from block entry, so the lookup stops locally.
+// MODEL: throws ReferenceError (TDZ). `let r = 2` is hoisted to the top of the
+//   block, uninitialized; lookup finds the block's r and stops, never reaching
+//   the outer r=1; reading it in the TDZ throws.
+
+
+// ---------------------------------------------------------------------------
+// Q6 -- 6.5/10  (3 + 3 + 0.5)   <-- half-answer
+// ---------------------------------------------------------------------------
+//   const s = 1;
+//   { const s = 2; console.log(s); }
+//   console.log(s);
+//
+// ANSWER: 2, 1. Explained shadowing (inner const block-scoped, doesn't touch
+//   outer) -- but did NOT answer the asked question: WHY is it legal despite
+//   const's no-redeclare / no-reassign rules?
+// THE GAP: const's "no redeclare" is per SAME scope -- these are different
+//   scopes. const's "no reassign" needs `s = 2` (an assignment) -- this is a
+//   fresh declaration. So it is a brand-new binding in a new scope: neither
+//   rule fires. It simply shadows.
+// MODEL: 2, 1. Legal because the inner `const s = 2` is a new binding in a
+//   different scope -- not a same-scope redeclaration, not a reassignment.
+//   Inside, s -> inner const (2); after the block, s -> untouched outer const (1).
+
+
+// ---------------------------------------------------------------------------
+// Q7 -- 9/10  (3 + 4.5 + 1.5)
+// ---------------------------------------------------------------------------
+//   var v = 1;
+//   { var v = 2; console.log(v); }
+//   console.log(v);
+//
+// ANSWER: 2, 2. No new binding, not shadowing; both v are the same binding in
+//   the same scope; the second var declaration is ignored, just reassigned.
+//   Correctly added "var's boundaries are affected by function scope not block".
+// LOST 1.5: still LED with "var is a global scope binding" -- in tension with
+//   the correct function-scope clause that followed. Lead with the right
+//   framing: var is function-scoped, global only as a special case.
+// MODEL: both 2. var ignores the block, so the inner `var v = 2` is the SAME
+//   binding as the outer; the declaration is ignored, `= 2` reassigns the one
+//   binding. Not shadowing -- shadowing needs two separate bindings.
+
+
+// ---------------------------------------------------------------------------
+// Q8 -- 6/10  (3 + 2.5 + 0.5)   <-- explained the wrong "why"
+// ---------------------------------------------------------------------------
+//   let w = 1;
+//   { var w = 2; }
+//   console.log(w);
+//
+// ANSWER: SyntaxError, parse-time, console.log won't run -- BUT explained why
+//   there is an ERROR (let/var collision), not why NOTHING EXECUTES.
+// THE GAP: "there's a conflict so it won't run" is too coarse -- a RUNTIME
+//   error would still let earlier lines run. The real reason nothing executes:
+//   a SyntaxError is caught at PARSE-TIME, before execution begins, so the
+//   whole script is rejected and no line runs.
+// MODEL: (a) throws (b) SyntaxError, parse-time (c) no. `var w` leaks out of
+//   the block into the global scope where `let w` lives -> two declarations in
+//   one scope -> SyntaxError, caught at parse-time -> entire script rejected
+//   before execution -> console.log never runs. (Runtime errors run earlier
+//   lines first; this is not one.)
+
+
+// ---------------------------------------------------------------------------
+// Q9 -- 9/10  (3 + 5 + 1)
+// ---------------------------------------------------------------------------
+//   function f() { { var y = 5; } console.log(y); }
+//   f();
+//
+// ANSWER: 5. var ignores the block; its boundary is set by function scope; y is
+//   reachable in the whole f function but not outside it. (Mechanism correct.)
+// LOST 1: still wrote "var is a global binding" -- a self-contradiction, since
+//   "not reachable outside f" means it is NOT global. Retire the phrase.
+// MODEL: prints 5. var ignores the block; its scope is the nearest function, f.
+//   y lives in f's function scope -- reachable throughout f, not outside it.
+//   Not global: there is an enclosing function, so var stops at f.
+
+
+// ---------------------------------------------------------------------------
+// Q10 -- 10/10  (3 + 5 + 2)   <-- clean
+// ---------------------------------------------------------------------------
+//   var k = 1;
+//   { let k = 2; console.log(k); }
+//   console.log(k);
+//
+// ANSWER: 2, 1. Legal shadowing -- let is block-scoped, different scope from
+//   the global var k, no collision, no redeclaration. Correct illegal contrast:
+//   swap them and "var is a functional scope" leaks into let's scope ->
+//   SyntaxError. (Note: used "function-scoped" -- the bad phrase was gone.)
+// MODEL: 2, 1. let k is block-scoped, confined to the block, never collides
+//   with the global var k -> legal. Opposite arrangement: var leaks into the
+//   outer let's scope -> two declarations in one scope -> SyntaxError, parse-time.
+//   Asymmetry is pure containment: let stays in the block, var escapes it.
+
+
+// ---------------------------------------------------------------------------
+// Q11 -- 9.5/10  (3 + 5 + 1.5)
+// ---------------------------------------------------------------------------
+//   { console.log(z); var z = 5; }
+//
+// ANSWER: undefined. var hoisted as the undefined placeholder in the
+//   memory-allocating phase; early read returns undefined. With let it would
+//   throw because let is hoisted uninitialized in the TDZ. (Both correct, and
+//   correctly said "memory phase", not "parsing".)
+// LOST 0.5: said let "would throw an error" without naming the class -- it is a
+//   ReferenceError (TDZ flavor).
+// MODEL: prints undefined. var is hoisted AND set to undefined in the
+//   memory-creation phase (and hoists to global, ignoring the block); the early
+//   read returns undefined. With let: hoisted uninitialized, block-scoped, in
+//   the block's TDZ -> reading it first throws ReferenceError (TDZ).
+
+
+// ---------------------------------------------------------------------------
+// Q12 -- 9.5/10  (3 + 4.5 + 2)   <-- capstone
+// ---------------------------------------------------------------------------
+//   let val = 1;
+//   function outer() {
+//     let val = 2;
+//     { let val = 3; console.log(val); }
+//     console.log(val);
+//   }
+//   outer();
+//   console.log(val);
+//
+// ANSWER: 3, 2, 1. Three separate val bindings (script=1, outer fn=2, block=3);
+//   traced execution order; each log -> its own scope's val. (Clear step format.)
+// LOST 0.5: reported the OUTCOME per scope without stating the LOOKUP -- for
+//   each log, resolution starts in the current scope, finds a local val, and
+//   HALTS without climbing (that is "why it stops there").
+// MODEL: 3, 2, 1. Three separate val bindings, one per scope. Each log resolves
+//   to the nearest val in the current scope and stops because that scope owns
+//   one -- inner shadows outer all the way down the chain.
+
+
+// ---------------------------------------------------------------------------
+// PATTERNS TO CARRY INTO EP 10
+// ---------------------------------------------------------------------------
+// WINS:
+//   - Scope-chain resolution: mastered (Q3, Q5, Q12).
+//   - var-vs-let placeholder (the old Ep 8 weak spot): solid now (Q11).
+//   - Legal/illegal shadowing asymmetry: clean (Q10).
+//   - Self-corrected the "var is global" misconception MID-QUIZ (Q2 -> Q10).
+//
+// WATCH:
+//   - HALF-ANSWERS: answer the EXACT sub-part asked, not a neighbor of it
+//     (Q6 = why-legal; Q8 = why-no-execution).
+//   - NAME THE ERROR CLASS, even on contrasts (Q11 let case).
+//   - PARSE-TIME => nothing runs; RUNTIME => earlier lines run first. Do not
+//     collapse "there's an error" into "nothing executes" (Q8).
+//   - PROSE: run-ons crept back in the back half; proofread.
