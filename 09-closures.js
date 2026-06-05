@@ -156,147 +156,72 @@
 //   "Not exposed as a property"  !=  "destroyed". The closure is the only door in.
 
 
-// ============================================================================
-// EP 10 — CLOSURES — QUIZ BANK (IN PROGRESS)
-// Fixed bank of 12. Q1–Q7 attempted, graded, and modeled below.
-// Q8–Q12: NOT YET ATTEMPTED — to be derived one per turn on resume.
-// Rubric: /10 = 3 (output) + 5 (mechanism) + 2 (precision).
-// ============================================================================
+// ----------------------------------------------------------------------------
+// 9. MANY CLOSURES, ONE SHARED BINDING, READ LATE   (Q8, Q9)
+// ----------------------------------------------------------------------------
+// When several functions are created inside ONE invocation, they all close over
+// the SAME bindings (by reference). Combined with "read at call time" (§7), they
+// all observe the variable's CURRENT value when they RUN — not the value at the
+// moment each was created.
+//   Q8: deposit/withdraw/getBalance share one `balance`; every write is visible.
+//   Q9: two functions pushed at different times share one `i`:
+//       let i = 0; funcs.push(() => i); i = 5; funcs.push(() => i);
+//       funcs[0](); funcs[1]();   // 5 5  -> both read the FINAL i, not 0/5
+// Intuition trap: a closure created while i was 0 does NOT "remember 0". There is
+// no snapshot — it reads the live `i` when it is called.
 
 
 // ----------------------------------------------------------------------------
-// Q1  — basic closure persistence            SCORE: 3/10  (3 + 0 + 0)
+// 10. THE "ONCE" / GATE PATTERN   (Q10)
 // ----------------------------------------------------------------------------
-// function outer() {
-//   let count = 0;
-//   function inner() { count++; console.log(count); }
-//   return inner;
-// }
-// const fn = outer();
-// fn(); fn();
+// A flag held in a closure can GATE behavior across calls.
+//   function once(fn) {
+//     let called = false;
+//     return function () { if (called) return; called = true; fn(); };
+//   }
+// `called` persists between calls (one binding, kept alive). First call flips it
+// to true and runs fn; every later call sees true and bails. Classic closure use.
+// PRECISION (Q10): once RETURNS one wrapper; `called` is CAPTURED (not returned);
+// `fn` is the ARGUMENT passed in. Three distinct roles — don't fuse them.
+
+
+// ----------------------------------------------------------------------------
+// 11. PERSISTENT ACCUMULATOR + INDEPENDENCE + INTERLEAVING   (Q11)
+// ----------------------------------------------------------------------------
+// Closures combine independence (§2) and persistence (§1) at the same time.
+//   function makeAdder(step) {
+//     let total = 0;
+//     return function () { total += step; return total; };
+//   }
+//   const inc2 = makeAdder(2), inc10 = makeAdder(10);
+//   inc2(); inc2(); inc10(); inc2();   // 2, 4, 10, 6
+// - INDEPENDENCE: inc2 and inc10 are separate calls -> separate `total` bindings.
+//   inc10's calls cannot touch inc2's total.
+// - PERSISTENCE: inc2's `total` is ONE binding kept alive between ITS calls, so it
+//   accumulates (2 -> 4 -> 6). Interleaving an inc10 call in the middle changes
+//   nothing about inc2's total.
+// TWO DIFFERENT FACTS (Q11 weak spot): "remembers its own state" = the binding
+// survives between calls; "not affected by inc10" = it's a different binding.
+
+
+// ----------------------------------------------------------------------------
+// 12. THE LOOP-CLOSURE TRAP   (Q12)  [previews Ep 11]
+// ----------------------------------------------------------------------------
+//   let funcs = [];
+//   for (var i = 0; i < 3; i++) { funcs.push(function () { return i; }); }
+//   funcs[0](); funcs[1](); funcs[2]();   // 3, 3, 3   (NOT 0, 1, 2)
+// WHY:
+//   - `var i` is function/global-scoped: ONE binding, NOT recreated per iteration.
+//   - All three closures capture that SAME `i` by reference.
+//   - They run LATER (at call time), after the loop has already finished.
+//   - By then `i` is its FINAL value -> all three read the same number.
 //
-// MY ANSWER: output 1, 1. Said inner keeps its lexical scope (correct definition).
-// MISS: predicted 1,1. count is captured by REFERENCE -> one binding -> accumulates.
-//       My (a) contradicted my own (b): persisted scope means count persists.
-// MODEL:
-//   (a) 1, then 2.
-//   (b) outer() ran once -> one count. inner closes over that live binding (not a
-//       copy). Both fn() calls mutate the same count: 0->1 (prints 1), 1->2 (prints 2).
-//       By-value snapshot would give 1,1; by-reference gives 1,2.
-
-
-// ----------------------------------------------------------------------------
-// Q2  — independent closures per call         SCORE: 9.5/10  (3 + 5 + 1.5)
-// ----------------------------------------------------------------------------
-// function outer() { let count = 0; return function () { count++; console.log(count); }; }
-// const a = outer(); const b = outer();
-// a(); a(); b();
+// THE OFF-BY-ONE (Q12 miss): the final `i` is 3, not 2. for-loop execution order:
+//     init  ->  [ check condition -> body -> update ]  repeating
+//   The UPDATE (i++) runs BEFORE the next condition check. Tail of the loop:
+//     i=2  -> 2<3 true -> body (3rd push) -> i++ => i=3 -> 3<3 FALSE -> EXIT.
+//   Body runs for i = 0,1,2 (three pushes) but `i` LANDS on 3. So all print 3.
+//   Takeaway: the counter ends ONE PAST the last value its body actually used.
 //
-// MY ANSWER: 1, 2, 1. Each outer() gives a different lexical environment / different
-//            count allocation, so a's increments don't affect b's.
-// MISS (-0.5): led with "b is a different VARIABLE" — independence comes from the
-//              second INVOCATION, not the variable name. (const b = a would SHARE.)
-// MODEL:
-//   (a) 1, 2, 1.
-//   (b) Each call to outer() builds a new context with its own count (count_a, count_b).
-//       Each returned fn closes over its OWN invocation's count. Two calls -> two
-//       independent counts. a(): 1,2 ; b(): 1.
-
-
-// ----------------------------------------------------------------------------
-// Q3  — multiple closures share one binding   SCORE: 5/10  (3 + 5 + 0)... -> see note
-// ----------------------------------------------------------------------------
-// NOTE: actually graded 5/10 = 0 + 5 + 0 (output wrong, mechanism right, contradiction).
-// function makeCounter() {
-//   let count = 0;
-//   return { inc: () => ++count, get: () => count };
-// }
-// const c = makeCounter();
-// c.inc(); c.inc();
-// console.log(c.get());
-//
-// MY ANSWER: output 1. (b) PERFECT: inc and get close over the SAME count by
-//            reference, from the same lexical parent.
-// MISS: output should be 2. Said "same count" then traced as if it didn't accumulate.
-//       Knowing the RULE != doing the DERIVATION. Trace: inc,inc -> 0->1->2 ; get -> 2.
-// MODEL:
-//   (a) 2.
-//   (b) One count. inc and get are defined in the same invocation's scope, so both
-//       capture the same binding by reference. c.inc() x2: 0->1->2; c.get(): 2.
-
-
-// ----------------------------------------------------------------------------
-// Q4  — parameter capture / function factory  SCORE: 9.5/10  (3 + 5 + 1.5)
-// ----------------------------------------------------------------------------
-// function multiplier(factor) { return function (n) { return n * factor; }; }
-// const double = multiplier(2); const triple = multiplier(3);
-// console.log(double(5)); console.log(triple(5)); console.log(double(triple(2)));
-//
-// MY ANSWER: 10, 15, 12 (traced the nested call correctly). Parameters become part
-//            of the lexical environment, so the returned fn closes over them.
-// MISS (-0.5): said the closure "remembers the function which is returned" (circular).
-//              The returned fn IS the closure; it carries the live binding `factor`.
-// MODEL:
-//   (a) 10, 15, 12.
-//   (b) A parameter is a local var of the function's scope. multiplier(2)->factor=2,
-//       multiplier(3)->factor=3 (separate calls -> separate bindings). Each returned
-//       fn closes over its own factor by reference. 5*2=10; 5*3=15; double(6)=12.
-
-
-// ----------------------------------------------------------------------------
-// Q5  — value read at call time                SCORE: 5/10  (3 + 2 + 0)
-// ----------------------------------------------------------------------------
-// function makeFn() { let x = 1; const read = () => console.log(x); x = 99; return read; }
-// makeFn()();
-//
-// MY ANSWER: 99. Noted x was reassigned to 99 before read runs. Honestly flagged "I
-//            don't know" on by-value vs by-reference (correct to flag, not bluff).
-// MISS: the by-ref/by-value contrast was the required sub-part and was unanswered.
-// MODEL:
-//   (a) 99.
-//   (b) read holds a REFERENCE to x, not a snapshot. It reads x's CURRENT value when
-//       it RUNS. x=99 ran before the call, so it prints 99. By-value would freeze 1
-//       at creation -> print 1. Output 99 proves by-reference.
-
-
-// ----------------------------------------------------------------------------
-// Q6  — multi-level scope chain                SCORE: 9.5/10  (3 + 4.5 + 2)
-// ----------------------------------------------------------------------------
-// function a() { let x = 10; return function b() { let y = 20;
-//   return function c() { console.log(x + y); }; }; }
-// a()()();
-//
-// MY ANSWER: 30. c walks up the lexical ladder through its lexical parents to reach
-//            x and y; closure = bundle of function + lexical environment; survives pop.
-// MISS (-0.5): "what keeps them alive" was circular ("because they're in the closure").
-//              Non-circular: c is reachable and holds a live reference UP the chain,
-//              so a's/b's environments can't be garbage-collected.
-// MODEL:
-//   (a) 30.
-//   (b) c's scope has neither -> climb to b (y=20) -> climb to a (x=10) -> 30.
-//       c stays reachable and references the chain, so the engine can't reclaim a's
-//       and b's environments. The reference is what blocks the cleanup.
-
-
-// ----------------------------------------------------------------------------
-// Q7  — encapsulation: variable vs property    SCORE: 6/10  (3 + 3 + 0)
-// ----------------------------------------------------------------------------
-// function secret() { let password = "abc"; return { check: (g) => g === password }; }
-// const s = secret();
-// console.log(s.check("abc")); console.log(s.password);
-//
-// MY ANSWER: true, undefined. Part 2 CORRECT: password is a variable in the lexical
-//            env, not a property of s, so s.password is undefined.
-// MISS: Part 1 WRONG + self-contradiction: said password "gets popped out... doesn't
-//       exist." check("abc")===true PROVES it's alive. "Not a property" != "destroyed".
-// MODEL:
-//   (a) true, undefined.
-//   (b) password survives (closure keeps secret's env alive; check uses it).
-//       s.password is undefined ONLY because password is a VARIABLE, not a KEY on the
-//       object {check}. Reading a missing property -> undefined. password is private,
-//       reachable only through check.
-
-
-// ----------------------------------------------------------------------------
-// Q8–Q12 — NOT YET ATTEMPTED. Resume one per turn; derive before any answer is recorded.
-// ----------------------------------------------------------------------------
+// (Ep 11 will show: `let` in the loop head creates a NEW binding each iteration,
+//  so the closures capture 0, 1, 2 separately -> prints 0, 1, 2. Not covered here.)
