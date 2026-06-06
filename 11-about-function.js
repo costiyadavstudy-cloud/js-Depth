@@ -167,3 +167,155 @@
 // - Definition placeholders = parameters; call-time values = arguments.
 // ================================================================
 
+// ================================================================
+// EP 13 QUIZ — FIRST CLASS FUNCTIONS ft. ANONYMOUS FUNCTIONS
+// Fixed bank: 12 questions (committed). One per turn.
+// THIS FILE = Q1-Q4 (attempted + graded). Q5 posed, NOT yet answered.
+// Q6-Q12 not delivered yet (committed, undisclosed per quiz contract).
+// ================================================================
+//
+// Running scores: Q1=8, Q2=3, Q3=10, Q4=7.5   (avg so far ~7.1)
+
+
+// ----------------------------------------------------------------
+// Q1 / 12
+// ----------------------------------------------------------------
+//   function alpha() {}
+//   var beta = function () {};
+// (a) Name each construct by its precise term.
+// (b) Term for a function with no name; is its use here legal + why?
+//
+// MY ANSWER:
+//   (a) alpha -> function statement ; beta -> function expression
+//   (b) anonymous function, yes legal because we can use an anonymous
+//       function for a function expression, as an argument, and to
+//       return a function.
+//
+// SCORE: 8/10 -> 3 (result) + 3.5 (mechanism) + 1.5 (precision)
+//   - Lost mechanism: listed WHERE anonymous fns are legal, not the
+//     unifying WHY (expression / value position).
+//   - Lost 0.5 precision: "declaration of function expression" mashes
+//     two terms the episode separates.
+//
+// 10/10 MODEL:
+//   (a) alpha = function statement (function declaration).
+//       beta  = function expression: a function assigned as a value.
+//   (b) Anonymous function. Legal here because the RHS of `var beta =`
+//       is an expression (value) position, and a function-as-value
+//       needs no name. Illegal only as a standalone statement.
+
+
+// ----------------------------------------------------------------
+// Q2 / 12
+// ----------------------------------------------------------------
+//   function () {
+//     console.log("hi");
+//   }
+// (a) What happens when JS processes this standalone anonymous fn?
+// (b) Exact error class + timing (before/during execution) + what that
+//     timing means for code on the lines ABOVE.
+//
+// MY ANSWER:
+//   (a) throws error
+//   (b) TypeError, happens before execution; "means during parse-time
+//       or execution time"
+//
+// SCORE: 3/10 -> 2 (result) + 1 (mechanism) + 0 (precision)
+//   - Wrong class: it is a SyntaxError, not TypeError (wrong concept).
+//   - "before execution" was the right instinct (parse-time).
+//   - Did not state the consequence; "parse-time OR execution time"
+//     contradicts "before execution" -> precision 0.
+//
+// 10/10 MODEL:
+//   (a) Throws a SyntaxError — a function statement requires a name, so
+//       a nameless one is a grammar violation the engine won't parse.
+//   (b) SyntaxError, parse-time (before execution). The parse fails, so
+//       the whole script is rejected — nothing runs, and any console.log
+//       on the lines above never prints.
+
+
+// ----------------------------------------------------------------
+// Q3 / 12
+// ----------------------------------------------------------------
+//   foo();
+//   bar();
+//   function foo() { console.log("foo"); }
+//   var bar = function () { console.log("bar"); };
+// (a) Exact output, line by line.
+// (b) Mechanism: why one succeeds, one fails.
+// (c) Failing one: error class, timing, did anything print before.
+//
+// MY ANSWER:
+//   (a) foo / type error.
+//       foo stored with full code in memory phase -> runs.
+//       bar (var) stored as undefined before initialization -> calling
+//       undefined as a function gives a type error.
+//   (c) TypeError, runtime, foo gets printed.
+//
+// SCORE: 10/10 -> 3 + 5 + 2
+//   - Output correct. Both mechanisms correct (statement hoisted with
+//     body; var hoisted as undefined, assigned at runtime). Error class,
+//     timing, and print-order all correct.
+//   - Sharpening (not a deduction): exact message is
+//     "TypeError: bar is not a function" = calling a non-function value.
+//
+// 10/10 MODEL:
+//   (a) "foo" prints; then bar() throws TypeError: bar is not a function.
+//   (b) foo = statement -> hoisted with full body -> callable early.
+//       bar = var -> hoisted as undefined, assigned only at its line.
+//   (c) TypeError, runtime. "foo" printed first (runtime errors let
+//       earlier lines run).
+
+
+// ----------------------------------------------------------------
+// Q4 / 12
+// ----------------------------------------------------------------
+//   var x = function abc() { console.log("hi"); };
+//   x();
+//   abc();
+// (a) Exact output — x() then abc().
+// (b) Mechanism: what is the name `abc`, where is it accessible?
+// (c) Failing call: error class + timing.
+//
+// MY ANSWER:
+//   (a) hi / reference error: abc not defined.
+//   (b) x() invokes x which holds the abc function as its value; abc()
+//       fails because abc exists only "in x" and cannot be reached
+//       directly/outside.
+//   (c) ReferenceError (exact wording not memorized — meaning correct).
+//
+// SCORE: 7.5/10 -> 3 (result) + 3.5 (mechanism) + 1 (precision)
+//   - Got the inside/outside boundary right; correctly flagged that the
+//     ERROR CLASS matters, not the exact message string.
+//   - Mechanism fuzzy: `abc` is NOT "a value inside x". It is the
+//     function's own internal name binding (named function expression),
+//     reachable only WITHIN the function body, not the outer scope.
+//   - Lost 1 precision: dropped the TIMING in (c).
+//
+// 10/10 MODEL:
+//   (a) x() prints "hi"; abc() throws ReferenceError: abc is not defined.
+//   (b) Named function expression. `x` holds the value (callable from
+//       outside). The name `abc` is bound only in the function's own
+//       scope — usable inside (recursion), absent outside.
+//   (c) ReferenceError, runtime. "hi" had already printed.
+
+
+// ----------------------------------------------------------------
+// Q5 / 12  —  POSED, NOT YET ATTEMPTED
+// ----------------------------------------------------------------
+//   function greet(name, greeting) {
+//     console.log(greeting + ", " + name);
+//   }
+//   greet("Vardhan", "Hello");
+// (a) Identify the parameters and the arguments — name them specifically.
+// (b) State the parameter vs argument distinction precisely.
+//
+// MY ANSWER: <pending — to be derived on resume>
+// (No output / model recorded here on purpose: this question is not yet
+//  attempted, and un-attempted answers are never pre-printed.)
+
+
+// ----------------------------------------------------------------
+// Q6 - Q12 : committed in the bank, not yet delivered (one per turn).
+// ----------------------------------------------------------------
+// ================================================================
