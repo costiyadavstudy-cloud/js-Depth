@@ -105,3 +105,73 @@
 //  - Trace returned-function calls: name what each variable is and where
 //    it came from.
 // ================================================================
+
+// ================================================================
+// EP 13 — NEW PRACTICE QUESTIONS  (10 questions, NO answers)
+// Derive them yourself. To get them GRADED, run them live, one per turn.
+// Targets your weak spots: statement vs expression, error class + timing,
+// writing valid code, named-fn-expr scope, returning/passing functions.
+// ================================================================
+
+
+// P1. Classify each as a function STATEMENT or a function EXPRESSION:
+//       (a) function sum(a, b) { return a + b; }
+//       (b) const f = function () {};
+//       (c) const g = function helper() {};
+
+
+// P2. Predict exact output AND the error (class + timing + did the lines
+//     above it run?):
+//       console.log("A");
+//       greet();
+//       var greet = function () { console.log("B"); };
+//       console.log("C");
+
+
+// P3. Predict exact output, and error class + timing if any:
+//       go();
+//       function go() { console.log("go"); }
+
+
+// P4. What happens with this line, and why (error class + timing)?
+//       function () {}      // stands alone — not assigned, not called
+
+
+// P5. Named function expression:
+//       const h = function inner() { console.log("hi"); };
+//       inner();
+//     What happens, why, and which error class?
+
+
+// P6. Write THREE separate one-line snippets, each demonstrating exactly
+//     ONE first-class capability — (a) assign, (b) pass as argument,
+//     (c) return. Each must be valid (no SyntaxError).
+
+
+// P7. Identify the parameters vs the arguments:
+//       function pay(amount, currency) { /* ... */ }
+//       pay(500, "INR");
+
+
+// P8. Trace and give exact output:
+//       function twice(fn) { fn(); fn(); }
+//       twice(function () { console.log("hit"); });
+
+
+// P9. Returning a function — trace:
+//       function multiplier(n) {
+//         return function (x) { return n * x; };
+//       }
+//       const triple = multiplier(3);
+//       console.log(triple(4));
+//     State: what does `triple` hold? what are `n` and `x`, and where did
+//     each come from? what is the exact output?
+
+
+// P10. FIX this broken code so it VALIDLY returns a function, then state
+//      what calling the fixed function (and then the returned one) gives:
+//        function build() {
+//          console.log(return function () { return 7; });
+//        }
+//      (Two distinct bugs to fix — name both.)
+// ================================================================
