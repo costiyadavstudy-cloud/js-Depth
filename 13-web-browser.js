@@ -248,3 +248,117 @@
 // - Next-direction is the student's call (curriculum autonomy). Strongest fit for
 //   what actually broke: a CONSTRUCTION drill (write code, don't trace).
 // =============================================================================
+
+// =============================================================================
+// EP 15 — ASYNCHRONOUS JAVASCRIPT & EVENT LOOP FROM SCRATCH
+// QUIZ BANK — fixed bank of 12, committed in advance, delivered one per turn.
+// (Namaste JavaScript, Akshay Saini.)  Vardhan — Day 11.
+//
+// Bank rules honoured: 10-15 Qs, total stated up front, escalating difficulty,
+// 1-3 sub-parts each stated up front, no chaining (each standalone), no reactive
+// creation. Questions only here; answers/models/scores live in the notes file.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Q1  (2 sub-parts)
+// (a) The JS engine has one call stack. State precisely what it executes, and
+//     whether it has any built-in concept of a timer or "waiting".
+// (b) Is setTimeout a feature of the JavaScript LANGUAGE itself? If not, name
+//     what actually provides it, and the exact path your code travels to reach it.
+
+// -----------------------------------------------------------------------------
+// Q2  (2 sub-parts)
+//   setTimeout(fn, 5000) is the first line; then a heavy synchronous loop that
+//   takes 10 seconds to finish.
+// (a) State the order of events, from the setTimeout call to fn finally running.
+// (b) fn does NOT run at the 5s mark. Explain the precise mechanism for why —
+//     name every stage involved.
+
+// -----------------------------------------------------------------------------
+// Q3  (2 sub-parts)
+//   console.log is used constantly and treated as "just part of JavaScript".
+// (a) Is console part of the JS language, or not? Commit to an answer.
+// (b) Justify with the underlying mechanism — and explain why, if your answer is
+//     what I think it is, you've never had to type the full access path to use it.
+
+// -----------------------------------------------------------------------------
+// Q4  (2 sub-parts)
+//   button.addEventListener("click", handleClick); user then clicks 3 times.
+// (a) Trace the route handleClick takes EACH time — where it lives after
+//     registration and the path it travels to actually execute.
+// (b) Contrast with a setTimeout callback in one precise respect: after running
+//     once, what difference is there in what remains registered — and what is the
+//     memory consequence?
+
+// -----------------------------------------------------------------------------
+// Q5  (2 sub-parts)
+//   console.log("A");
+//   setTimeout(() => console.log("B"), 0);
+//   Promise.resolve().then(() => console.log("C"));
+//   console.log("D");
+// (a) Predict the exact output order.
+// (b) Justify it: name which callback lands in which queue, and explain the
+//     event-loop rule that makes one deferred callback run before the other.
+
+// -----------------------------------------------------------------------------
+// Q6  (2 sub-parts)
+//   The event loop empties the WHOLE microtask queue before each task-queue cb.
+// (a) Describe a concrete scenario where this priority rule delays a setTimeout
+//     callback far past its timer — or makes it never run at all.
+// (b) Name this problem precisely, and explain the exact mechanism that produces it.
+
+// -----------------------------------------------------------------------------
+// Q7  (3 sub-parts)  — WRITE REAL, RUNNABLE CODE, not pseudocode.
+// (a) Select the element whose id is `start` and register a click handler on it.
+// (b) The handler logs a running click count: 1 on the first click, then 2, 3, ...
+// (c) Write the single statement that later unregisters THIS EXACT handler.
+
+// -----------------------------------------------------------------------------
+// Q8  (2 sub-parts)  [rescoped Day 11: original had an out-of-scope event-loop/error
+//                     interaction; stripped to in-scope Ep 8/9 carryover only]
+//   console.log("1");
+//   throw new Error("boom");
+//   setTimeout(() => console.log("2"), 0);
+//   console.log("3");
+// (a) Predict exactly what appears in the console, in order.
+// (b) Account for each line after the throw: which runs, which never runs, and
+//     why — and state whether this halts at parse-time or runtime.
+
+// -----------------------------------------------------------------------------
+// Q9  (2 sub-parts)
+//   A developer writes setTimeout(fn, 0) expecting fn to run immediately.
+// (a) Does it? State what happens to fn relative to the synchronous code after it.
+// (b) Explain the precise mechanism, and state what the 0 GUARANTEES — and what
+//     it does NOT.
+
+// -----------------------------------------------------------------------------
+// Q10 (2 sub-parts)
+//   setTimeout(function () { console.log("hi"); }, 1000);
+// (a) The first argument — function STATEMENT or function EXPRESSION? Commit.
+// (b) Justify with the rule that DECIDES it. Then: does storing a function in a
+//     variable, or passing it as an argument, ever CHANGE which one it is?
+
+// -----------------------------------------------------------------------------
+// Q11 (2 sub-parts)
+//   console.log("A");
+//   setTimeout(() => console.log("B"), 0);
+//   Promise.resolve().then(() => {
+//     console.log("C");
+//     Promise.resolve().then(() => console.log("D"));
+//   });
+//   console.log("E");
+// (a) Predict the exact output order.
+// (b) Justify why D prints BEFORE B, referencing how the event loop treats a
+//     microtask scheduled DURING the microtask drain.
+
+// -----------------------------------------------------------------------------
+// Q12 (2 sub-parts)
+// (a) JS is single-threaded and synchronous, yet setTimeout/fetch/listeners are
+//     called "asynchronous". Given the engine only does one thing at a time,
+//     where does the asynchrony actually come from?
+// (b) Name the two structures that let a deferred callback run later WITHOUT
+//     blocking the main thread, and give each one's job in a single line.
+
+// =============================================================================
+// END OF BANK (12 questions).
+// =============================================================================
