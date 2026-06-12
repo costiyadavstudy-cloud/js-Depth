@@ -1,263 +1,392 @@
-// =============================================================================
-// EP 15 — ASYNCHRONOUS JAVASCRIPT & EVENT LOOP FROM SCRATCH  —  NOTES
-// Namaste JavaScript (Akshay Saini). Vardhan — Day 11.
-// Bank: 12 Qs, completed in full. Avg 7.83 / 10 (vs Ep 14 = 7.17).
-// Watch-check: Ep 15 verified by title ("...EVENT LOOP from scratch"), watched
-// end to end. Ep 11 & Ep 12 STILL formally UNVERIFIED.
-// =============================================================================
+/******************************************************************************
+ *  NAMASTE JAVASCRIPT — DEEP NOTES
+ *  PART 1: BEHIND THE SCENES (Execution Context & Call Stack)   [Ep 1–2]
+ *  PART 2: THE JS RUNTIME ENVIRONMENT (JRE, Web APIs, Event Loop) [Ep 15–16]
+ *
+ *  Same rules as the Ep-16 notes:
+ *  - Every claim has a WHY.
+ *  - Trace exercises are embedded. DO THEM ON PAPER before reading answers.
+ *  - When confused, stop and re-derive. Scrolling past confusion = 0 learning.
+ ******************************************************************************/
 
 
-// =============================================================================
-// PART A — CONCEPTS CRYSTALLIZED (11 sections)
-// =============================================================================
+/******************************************************************************
+ * SECTION 0 — THE TWO SENTENCES THAT RULE THESE NOTES
+ ******************************************************************************/
 
-// 1. CALL STACK
-//    One stack. Executes synchronous execution contexts, one at a time, top to
-//    bottom. It has NO built-in concept of time, timers, or "waiting". Nothing
-//    on the stack can pause itself.
-
-// 2. WEB APIs ARE NOT JAVASCRIPT
-//    setTimeout, fetch, console, the DOM (document), localStorage etc. are NOT
-//    part of the JS language (ECMAScript). The browser supplies them as Web APIs
-//    and attaches them to the global `window` object.
-//    - You call them as window.setTimeout(...), but drop the prefix.
-//    - WHY droppable: window IS the global object. An unqualified identifier
-//      (console, setTimeout) is resolved up the scope chain to the global object,
-//      where it finds window.<name>. Same lookup. The prefix is optional, which
-//      is exactly why host APIs feel native.
-
-// 3. setTimeout IS NON-BLOCKING
-//    The setTimeout CALL runs synchronously: it registers (callback + timer) in
-//    the Web API env and RETURNS IMMEDIATELY. Only the callback defers. Control
-//    passes straight to the next line — that's why a 10s loop can run "after" a
-//    setTimeout. fn vs fn(): setTimeout(fn,t) passes the reference (deferred);
-//    setTimeout(fn(),t) runs fn NOW and passes its return value.
-
-// 4. THE DEFERRAL FLOW
-//    callback registered in Web API env  ->  timer expires  ->  callback moved to
-//    the TASK (callback) queue  ->  event loop sees an empty stack  ->  pushes the
-//    callback onto the stack  ->  it runs.
-//    Timer expiry only ENQUEUES; it does not execute. Execution needs (i) callback
-//    queued AND (ii) call stack empty.
-
-// 5. EVENT LOOP
-//    Gatekeeper. When the call stack is empty, it moves a queued callback onto the
-//    stack. Crucially: it DRAINS THE ENTIRE MICROTASK QUEUE — including microtasks
-//    enqueued DURING the drain — before taking even ONE task-queue callback.
-
-// 6. TWO QUEUES — the mapping (memorise the split)
-//    MICROTASK queue  <-  Promise callbacks (.then/.catch/.finally) + Mutation
-//                         Observer. ONLY these.
-//    TASK / CALLBACK  <-  setTimeout, setInterval, and ALL DOM event callbacks
-//                         (click, etc.).
-//    Priority: all microtasks run before each task. (A click is a TASK, not a
-//    microtask — the Q4 miss.)
-
-// 7. STARVATION
-//    "Many microtasks" only DELAYS a setTimeout callback — a big pile still drains,
-//    then the task runs. True starvation (NEVER runs) needs SELF-REGENERATION: a
-//    microtask that schedules ANOTHER microtask each time it runs. The queue never
-//    empties -> the event loop never reaches the task queue -> the callback is
-//    starved forever.
-
-// 8. EVENT LISTENERS
-//    addEventListener REGISTERS a dormant callback in the Web API env. Each event
-//    enqueues a FRESH copy to the task queue. The listener PERSISTS (setTimeout is
-//    one-shot) -> its closure / captured variables CANNOT be GC'd while registered
-//    -> removeEventListener frees them. To remove, you must pass the SAME function
-//    reference -> an anonymous inline handler is UNREMOVABLE (keep no reference).
-
-// 9. UNCAUGHT-ERROR HALT  (carryover [P3] from Ep 8/9)
-//    An UNCAUGHT throw halts the CURRENT synchronous run. Lines after it are never
-//    reached (a setTimeout after a throw never even REGISTERS — "never registered"
-//    != "registered but never fired"). A CAUGHT error (try/catch) does NOT halt;
-//    control jumps to catch and execution continues.
-//    - Error CLASS (TypeError/ReferenceError/SyntaxError) is ORTHOGONAL to
-//      caught/uncaught. The class never decides caught-ness; the try/catch does.
-//    - PARSE-time (SyntaxError): whole file rejected, NOTHING runs (not even line 1).
-//      RUNTIME (throw, ReferenceError, TypeError): halts mid-run, earlier lines
-//      already ran — that's the TELL for which it is.
-//    - Sync throw -> caught only by try/catch. Promise rejection -> handled by
-//      .catch (or .then's 2nd arg). .then's FIRST arg is the success path, NOT an
-//      error handler.
-
-// 10. STATEMENT vs EXPRESSION  ([P1], surfaced via callbacks)
-//    A function sitting where a VALUE is expected (e.g. an argument) is an
-//    EXPRESSION. Position is fixed at WRITE-TIME by where the code physically sits.
-//    An ANONYMOUS function can ONLY be an expression (a function STATEMENT requires
-//    a name). Storing in a variable or passing as an argument NEVER converts it —
-//    a variable merely REFERENCES the value; nothing "becomes" anything.
-
-// 11. WHERE ASYNCHRONY COMES FROM
-//    NOT the language, and NOT the window object (window is just the namespace
-//    exposing the APIs). It comes from (a) the browser's Web APIs doing work OFF
-//    the main JS thread (timers, network, DOM event-listening), and (b) the event
-//    loop + queues feeding completed callbacks back onto the stack. The JS engine
-//    stays strictly synchronous; the ENVIRONMENT supplies the concurrency.
-
-
-// =============================================================================
-// PART B — FULL Q1-Q12 LOG  (student answer condensed | score | miss | model)
-// =============================================================================
-
-// Q1 — 8.5/10 (3 + 5 + 0.5)
-//   STUDENT: (a) stack runs commands one at a time, no timer/waiting, those come
-//   from Web APIs [correct]. (b) not JS, Web APIs provide it; then described the
-//   CALLBACK lifecycle instead of the access path.
-//   MISS (precision): the path to REACH setTimeout = the global `window` object
-//   (window.setTimeout, prefix droppable). Described the callback's journey (Q3/Q4
-//   territory) instead. Phrasing 2-way readable, so half-slice only.
-//   MODEL: (a) executes execution contexts (sync code), one at a time; no concept
-//   of time/waiting. (b) not part of JS; browser supplies it as a Web API on the
-//   global window object; reached via window.setTimeout(...), prefix dropped.
-
-// Q2 — 9/10 (3 + 4 + 2)
-//   STUDENT: order correct; (b) registered via window, loop runs, at 5s callback
-//   to queue, at 10s stack empty -> event loop pushes. Got the gating.
-//   MISS (mechanism, 1 stage): didn't name that setTimeout is NON-BLOCKING —
-//   registers + RETURNS IMMEDIATELY, which is WHY the loop runs at all.
-//   MODEL: register (window) + return immediately -> 10s loop seizes stack -> 5s
-//   timer expiry moves fn to queue (enqueue != execute) -> 10s stack empties ->
-//   event loop pushes fn.
-
-// Q3 — 8.5/10 (3 + 4.5 + 1)
-//   STUDENT: (a) not JS. (b) console lives on window (tested via this.console),
-//   window is browser-provided; no prefix needed.
-//   MISS (mechanism): the OMISSION mechanism — window IS the global object; an
-//   unqualified `console` resolves up the scope chain to it. Stated the fact, not
-//   the why. "this gives something" too vague.
-//   MODEL: console is host-provided, attached to global window; unqualified
-//   console resolves to window.console — same object, prefix optional.
-
-// Q4 — 6.5/10 (3 + 3.5 + 0)
-//   STUDENT: (a) routed the click callback to the MICROTASK queue [WRONG].
-//   (b) listener reference persists in Web API -> closure not GC'd; setTimeout
-//   one-shot -> released. (b) excellent.
-//   MISS (precision, wrong queue): clicks/setTimeout -> TASK queue. Microtask
-//   queue is Promises + MutationObserver ONLY. (Contradicts his own Q1 "microtask
-//   priority" — knew both queues exist, not which cb goes where.)
-//   MODEL: dormant in Web API -> each click enqueues a fresh copy to the TASK
-//   queue -> event loop pushes when stack empty. Listener persists -> closure not
-//   GC'd; fix = removeEventListener.
-
-// Q5 — 10/10 (3 + 5 + 2)
-//   STUDENT: A D C B; setTimeout->task, promise->microtask; microtask drained
-//   before task -> C before B. Corrected the Q4 queue error one question later.
-//   MODEL: A,D sync first; C(microtask) drained fully before B(task).
-
-// Q6 — 6/10 (3 + 2.5 + 0.5)
-//   STUDENT: named STARVATION; said "many microtasks delay setTimeout". No
-//   concrete scenario.
-//   MISS (mechanism): "many" only DELAYS (drains eventually). NEVER-runs needs
-//   SELF-REGENERATING microtasks keeping the queue non-empty so the loop never
-//   reaches the task queue.
-//   MODEL: a .then that re-schedules a .then inside itself; queue never empties;
-//   setTimeout(fn,0) starved forever.
-
-// Q7 — 4.5/10 (1.5 + 3 + 0)  [CONSTRUCTION — now the #1 open gap]
-//   STUDENT: getElementById(start) [unquoted -> ReferenceError]; addEventListener
-//   ('click', fn) [correct casing+quotes, fixed from Ep14]; count++ then log ->
-//   1,2,3 [correct, fixed from Ep14]; (c) not attempted ("not in video").
-//   MISS (precision): unquoted `start` must be the STRING "start". (c): anonymous
-//   inline handler is UNREMOVABLE — needs a NAMED reference at registration.
-//   MODEL:
-//     let count = 0;
-//     function handleClick(){ count++; console.log(count); }
-//     const startBtn = document.getElementById("start");
-//     startBtn.addEventListener("click", handleClick);
-//     startBtn.removeEventListener("click", handleClick);   // (c)
-
-// Q8 — 7.5/10 (3 + 4 + 0.5)  [P3 carryover]
-//   STUDENT: first output wrongly listed 2 and 3; corrected to "1, uncaught error"
-//   and concluded none of the remaining lines run [correct]. Did NOT answer
-//   parse-vs-runtime.
-//   MISS (precision, unanswered sub-part): halts at RUNTIME — "1" printing proves
-//   the file parsed and ran to the throw; a parse-time SyntaxError would block
-//   even line 1. Nuance: setTimeout after the throw never REGISTERS.
-//   MODEL: output = 1, Uncaught Error. throw uncaught (no try/catch) halts the
-//   sync run; lines after never reached; runtime (line 1 ran).
-
-// Q9 — 8/10 (3 + 4.5 + 0.5)
-//   STUDENT: (a) doesn't run immediately, sync continues — but spurious "if
-//   async/await not used" qualifier. (b) mechanism correct; got "0 doesn't
-//   guarantee instant EXECUTION".
-//   MISS (precision): async/await is IRRELEVANT to setTimeout (Promise/microtask
-//   machinery); setTimeout always defers unconditionally. 0 = MINIMUM delay before
-//   eligible to queue, not a guarantee of run time.
-//   MODEL: setTimeout call is synchronous (registers, returns); fn deferred; 0 is
-//   a minimum, guarantees nothing about WHEN it runs.
-
-// Q10 — 9.5/10 (3 + 4.5 + 2)  *** [P1] REGRESSION CLOSED (Day 10 Q10 = 1) ***
-//   STUDENT: (a) expression [correct]. (b) function in value-expected position =
-//   expression; storing/passing does NOT change it [correct — reversed the Day-10
-//   misconception cold].
-//   MISS (minor mechanism): didn't state write-time fixity / anonymous-can-only-
-//   be-expression as reinforcement.
-//   MODEL: expression; position fixed at write-time; anonymous fn can only be an
-//   expression (statement needs a name); variable just references the value.
-
-// Q11 — 8.5/10 (3 + 4 + 1.5)
-//   STUDENT: A E C D B [correct]; traced C -> inner promise schedules D -> D ->
-//   B. Showed the outcome but didn't crisply state the rule; run-on wording.
-//   MISS (mechanism): name the rule — microtask queue drained to ZERO (incl.
-//   mid-drain additions) before ANY task; so D (added during drain) beats B.
-//   MODEL: as above; D joins the same drain pass, runs before the loop touches
-//   the task queue.
-
-// Q12 — 7.5/10 (3 + 3.5 + 1)
-//   STUDENT: (a) browser — "mainly due to window object" [misattribution].
-//   (b) task queue stores deferred cb [correct]; event loop gates on empty stack
-//   + pushes [correct].
-//   MISS (mechanism/precision): window is the NAMESPACE, not the source.
-//   Asynchrony = Web APIs running off-thread + event loop/queues feeding callbacks
-//   back. Engine stays synchronous; environment supplies concurrency.
-//   MODEL: as in concept section 11.
-
-
-// =============================================================================
-// PART C — WEAK-SPOT TRACKER (re-ranked after Ep 15)
-// =============================================================================
-
-// [#1 OPEN] CONSTRUCTION ([P2]) — Q7 = 4.5. Unquoted-argument bug fired AGAIN.
-//   Tracing/reasoning run well ahead of writing runnable code. Will NOT close by
-//   tracing — needs WRITING reps. Candidate: ep13_practice_questions.js (P1-P10,
-//   still unattempted), or a dedicated write-code drill.
-
-// [HOLDING] PARSE vs RUNTIME / uncaught halt ([P3]) — Q8 = 7.5. Improved but
-//   needed scaffolding and left the TIMING sub-part blank. Keep deriving parse-vs-
-//   runtime explicitly (it's a DERIVATION, not a rule to be handed).
-
-// [RECOVERED IN-SESSION] Queue mapping (task vs microtask) — Q4 6.5 -> Q5 10,
-//   Q11 8.5. The split + drain rule now hold.
-
-// [REVISIT] STARVATION — Q6 = 6. The "regenerating vs merely many" distinction.
-
-// [TIC] ATTRIBUTION — attaching a wrong qualifier/source to a correct idea
-//   (async/await in Q9; window object in Q12). Instinct right, attribution loose.
-
-// [CLOSED] STATEMENT vs EXPRESSION ([P1]) — Q10 = 9.5 (was Day-10 = 1, misconception
-//   AFFIRMED). Reversed cleanly and cold. Monitor, no longer top priority.
-
-
-// =============================================================================
-// PART D — STATUS
-// =============================================================================
-// - Ep 15 done in full: 94/120 = 7.83 avg (Ep 14 = 7.17).
-// - Ep 11 & Ep 12 STILL formally UNVERIFIED (closure/async core keeps holding
-//   wherever it surfaces, but no on-record quiz).
-// - Next-direction is the student's call (curriculum autonomy). Strongest fit for
-//   what actually broke: a CONSTRUCTION drill (write code, don't trace).
-// =============================================================================
-
-// =============================================================================
-// EP 15 — ASYNCHRONOUS JAVASCRIPT & EVENT LOOP FROM SCRATCH
-// QUIZ BANK — fixed bank of 12, committed in advance, delivered one per turn.
-// (Namaste JavaScript, Akshay Saini.)  Vardhan — Day 11.
+// 1. "EVERYTHING in JavaScript happens inside an EXECUTION CONTEXT."
+// 2. "The ENGINE alone cannot run real-world JS. It needs the RUNTIME
+//     ENVIRONMENT around it — the engine is just one organ in a body."
 //
-// Bank rules honoured: 10-15 Qs, total stated up front, escalating difficulty,
-// 1-3 sub-parts each stated up front, no chaining (each standalone), no reactive
-// creation. Questions only here; answers/models/scores live in the notes file.
-// =============================================================================
+// Part 1 explains sentence 1 (what happens INSIDE the engine's execution).
+// Part 2 explains sentence 2 (what surrounds the engine, and why async
+// is even possible in a single-threaded language).
+
+
+/******************************************************************************
+ *
+ *  PART 1 — BEHIND THE SCENES: EXECUTION CONTEXT
+ *
+ ******************************************************************************/
+
+/******************************************************************************
+ * SECTION 1 — WHAT AN EXECUTION CONTEXT IS
+ ******************************************************************************/
+
+// An EXECUTION CONTEXT (EC) is the environment in which JS code is evaluated.
+// Think of it as a box with TWO components:
+//
+//   +--------------------------------------------------+
+//   |               EXECUTION CONTEXT                  |
+//   |                                                  |
+//   |  1) MEMORY COMPONENT          2) CODE COMPONENT  |
+//   |     ("Variable Environment")     ("Thread of     |
+//   |                                   Execution")    |
+//   |     key : value storage          executes code   |
+//   |     variables & functions        ONE line at a   |
+//   |     live here                    time            |
+//   +--------------------------------------------------+
+//
+// Two facts that follow:
+//   - JS is SYNCHRONOUS SINGLE-THREADED: one code component = one command
+//     executed at a time, in order. JS cannot natively "do two things at
+//     once". (Then how does setTimeout work?! -> Part 2. Hold the question.)
+//   - Every EC is built in TWO PHASES (next section). This two-phase build
+//     is the MECHANISM behind "hoisting" — hoisting is not magic, it is a
+//     side effect of phase 1.
+
+
+/******************************************************************************
+ * SECTION 2 — THE TWO PHASES (this is the core mechanism of Part 1)
+ ******************************************************************************/
+
+// PHASE 1 — MEMORY CREATION PHASE:
+//   The engine scans the code in the current scope BEFORE executing anything,
+//   and allocates memory for every variable and function declaration:
+//     - var variables          -> stored with the placeholder  undefined
+//     - function DECLARATIONS  -> stored with the ENTIRE function code
+//     - (let/const             -> allocated but kept UNINITIALIZED in a
+//        separate space; touching them before their line throws — the
+//        "Temporal Dead Zone". Ep 8 detail, noted here for completeness.)
+//
+// PHASE 2 — CODE EXECUTION PHASE:
+//   The engine runs the code top-to-bottom, one line at a time:
+//     - assignments REPLACE the placeholders with real values,
+//     - every FUNCTION CALL creates a brand-new EC (with its own two
+//       phases!) and pushes it onto the CALL STACK.
+
+// ---- TRACE EXERCISE 1 (paper first!) ----------------------------------
+
+var n = 2;
+function square(num) {
+  var ans = num * num;
+  return ans;
+}
+var square2 = square(n);
+var square4 = square(4);
+
+// PHASE 1 of the GLOBAL EC (before ANY line "runs"):
+//   memory: { n: undefined,
+//             square: <entire function code>,
+//             square2: undefined,
+//             square4: undefined }
+//
+// PHASE 2, line by line:
+//   line `var n = 2`        -> memory.n: undefined -> 2
+//   function declaration    -> nothing to DO (already in memory)
+//   line `square(n)`        -> NEW EC created for square:
+//        its PHASE 1: { num: undefined, ans: undefined }
+//        its PHASE 2: num <- 2; ans <- 4; `return` hands 4 back to the
+//                     calling line AND DESTROYS this EC (popped off stack)
+//   memory.square2: undefined -> 4
+//   line `square(4)`        -> ANOTHER fresh EC (num:4, ans:16) -> 16,
+//                              destroyed again.
+//   memory.square4: undefined -> 16
+//
+// KEY INSIGHT: every CALL gets a FRESH, ISOLATED memory. That is why
+// `num` and `ans` from the two calls never collide. "Local variables"
+// are not a rule someone decreed — they are a CONSEQUENCE of each call
+// building its own EC.
+
+
+/******************************************************************************
+ * SECTION 3 — HOISTING, DEMYSTIFIED (it's just Phase 1)
+ ******************************************************************************/
+
+// ---- TRACE EXERCISE 2: predict all three outputs BEFORE reading on ----
+
+console.log(b);        // ?
+getName();             // ?
+console.log(getName);  // ?
+
+var b = 7;
+function getName() { console.log("Namaste JavaScript"); }
+
+// ANSWERS + MECHANISM:
+//   console.log(b)       -> undefined
+//        because Phase 1 already allocated b with placeholder undefined.
+//        NOT an error — the variable EXISTS, its value doesn't yet.
+//   getName()            -> "Namaste JavaScript"
+//        because Phase 1 stored the ENTIRE function, callable immediately.
+//   console.log(getName) -> prints the whole function source
+//
+// CONTRAST — what actually errors:
+//   console.log(c); // ReferenceError: c is not defined
+//        c was NEVER declared anywhere -> no Phase-1 allocation -> the
+//        engine has no entry for it at all.
+//
+// PRECISION DRILL (these three are DIFFERENT, never blur them):
+//   undefined          = declared, allocated, no value assigned YET.
+//   not defined        = never declared; no memory entry exists.
+//   TDZ ReferenceError = let/const declared, allocated, but accessed
+//                        before its initialization line.
+//
+// And the arrow-function trap:
+var getAge = () => 20;
+//   In Phase 1, getAge is a VAR -> placeholder undefined.
+//   Calling getAge() ABOVE this line -> TypeError: getAge is not a function
+//   (you'd be calling undefined). Only function DECLARATIONS are stored
+//   whole; function EXPRESSIONS/arrows follow variable rules.
+
+
+/******************************************************************************
+ * SECTION 4 — THE CALL STACK (execution bookkeeping)
+ ******************************************************************************/
+
+// The CALL STACK tracks "who is running and who called whom".
+//   - Program starts  -> GLOBAL EC pushed (bottom of stack, always).
+//   - Function called -> its new EC PUSHED on top. Top of stack = currently
+//                        executing code.
+//   - Function returns-> its EC POPPED and destroyed.
+//   - Program ends    -> Global EC popped. Stack empty.
+//
+//   square4 call moment:        after everything:
+//   | EC: square(4) |  <- top
+//   | GLOBAL EC     |           |  (empty)  |
+//   +---------------+           +-----------+
+//
+// PRECISION (my Ep-16 test error, corrected forever): the call stack does
+// NOT "hand machine code to the CPU". It is BOOKKEEPING for execution
+// contexts. The CPU runs the engine's machine code (Ep-16 notes, Sec 0).
+//
+// CONNECTIONS to the Ep-16 notes:
+//   - Call cost = create EC + push + bind args + pop. THIS is the overhead
+//     that INLINING deletes (Ep-16 notes, Sec 6a).
+//   - Stack overflow = ECs pushed faster than popped (e.g., recursion with
+//     no base case) until the stack's memory limit is hit.
+
+function overflow() { overflow(); }   // overflow(); -> RangeError:
+                                      // Maximum call stack size exceeded
+// Mechanism: each call pushes a new EC, none ever returns/pops.
+
+// ALIASES you'll meet in docs/devtools for the same thing: execution
+// context stack, program stack, control stack, machine stack.
+// Different names, one mechanism.
+
+
+/******************************************************************************
+ *
+ *  PART 2 — THE JS RUNTIME ENVIRONMENT (the body around the engine)
+ *
+ ******************************************************************************/
+
+/******************************************************************************
+ * SECTION 5 — WHY THE ENGINE ALONE IS NOT ENOUGH
+ ******************************************************************************/
+
+// Sit with this: the call stack executes whatever enters it IMMEDIATELY,
+// one thing at a time, and JS has ONE thread. There is no "wait" inside
+// the engine. So how can this possibly work:
+
+setTimeout(() => console.log("later"), 5000);
+console.log("now");
+// prints "now" first, "later" ~5s after — WITHOUT freezing for 5 seconds.
+
+// It works because setTimeout IS NOT JAVASCRIPT. Neither is the DOM,
+// fetch, localStorage, or even console. None of them are in the
+// ECMAScript spec. They are FACILITIES PROVIDED BY THE ENVIRONMENT
+// hosting the engine. Which brings us to:
+//
+//   JS RUNTIME ENVIRONMENT (JRE) = a container with everything needed
+//   to run JS programs:
+//
+//   +------------------------------------------------------------------+
+//   |                    JS RUNTIME ENVIRONMENT                        |
+//   |                                                                  |
+//   |   +----------------+         +-------------------------------+   |
+//   |   |   JS ENGINE    |         |  APIs ("superpowers" given     |   |
+//   |   | (Ep-16 notes:  |         |  by the environment)           |   |
+//   |   |  parser, JIT,  | <-----> |  Browser: setTimeout, DOM,     |   |
+//   |   |  call stack,   |         |   fetch, console, localStorage,|   |
+//   |   |  heap, GC)     |         |   location, alert ...          |   |
+//   |   +----------------+         |  Node: setTimeout, fs, http,   |   |
+//   |        ^                     |   process, crypto ...          |   |
+//   |        |                     +-------------------------------+   |
+//   |        |                              |                          |
+//   |   EVENT LOOP  <---- MICROTASK QUEUE <-+ (promise callbacks)      |
+//   |        ^                              |                          |
+//   |        +----------- CALLBACK QUEUE  <-+ (timer/event callbacks)  |
+//   +------------------------------------------------------------------+
+//
+// The browser is ONE runtime environment. Node.js is ANOTHER (same V8
+// engine, different surrounding facilities — no DOM in Node, no `fs` in
+// the browser). ANYTHING can be a runtime environment if it embeds an
+// engine and supplies APIs — that's how JS runs in browsers, servers,
+// even smart appliances.
+
+
+/******************************************************************************
+ * SECTION 6 — WEB APIs AND THE window OBJECT
+ ******************************************************************************/
+
+// In the browser, the environment's facilities are exposed to your code
+// through the GLOBAL OBJECT: `window`.
+//   setTimeout(...)  is really  window.setTimeout(...)
+//   console.log(...) is really  window.console.log(...)
+// You omit `window.` because the global object is the default scope.
+//
+// MENTAL MODEL: your JS code is a guest; `window` is the hotel's front
+// desk. Room service (timers), concierge (DOM), phone line (fetch) —
+// all hotel services, not things the guest carries.
+//
+// WHY this matters mechanically: when you call a Web API, the WORK
+// (waiting 5s, fetching over the network, listening for a click) happens
+// IN THE BROWSER'S MACHINERY, OUTSIDE the JS thread. The single JS
+// thread never waits. It registers a CALLBACK and moves on. The question
+// becomes: how does the callback get BACK into the single thread safely?
+// Answer: the queues + the event loop.
+
+
+/******************************************************************************
+ * SECTION 7 — THE EVENT LOOP AND THE TWO QUEUES (the core of Part 2)
+ ******************************************************************************/
+
+// THE PIECES:
+//   CALLBACK QUEUE (a.k.a. task/macrotask queue):
+//       callbacks from setTimeout/setInterval, DOM events (clicks), etc.
+//       wait here in line.
+//   MICROTASK QUEUE:
+//       callbacks from PROMISES (.then/.catch/.finally) and
+//       MutationObserver wait here. SEPARATE queue, HIGHER priority.
+//   EVENT LOOP:
+//       a tireless gatekeeper running one rule forever:
+//
+//       >>> "If the CALL STACK IS EMPTY:
+//            first drain the ENTIRE microtask queue,
+//            then move ONE task from the callback queue onto the stack." <<<
+//
+// Consequences you must be able to DERIVE, not memorize:
+//   (a) Nothing from any queue can run while the stack is busy. EVER.
+//   (b) Microtasks beat macrotasks. All pending promise callbacks run
+//       before the next setTimeout callback gets its turn.
+//   (c) STARVATION: if microtasks keep spawning more microtasks, the
+//       callback queue may wait indefinitely — the event loop never gets
+//       past the "drain ALL microtasks" step.
+
+// ---- TRACE EXERCISE 3: the classic. Predict the full output order. ----
+
+console.log("A");
+
+setTimeout(() => console.log("B"), 0);     // 0ms delay. ZERO. Trap armed.
+
+Promise.resolve().then(() => console.log("C"));
+
+console.log("D");
+
+// ANSWER: A, D, C, B.
+// MECHANISM, step by step:
+//   1. "A" — synchronous, runs on the stack immediately.
+//   2. setTimeout: the TIMER is handed to the Web-API side; the callback
+//      will be placed in the CALLBACK QUEUE when the timer fires (0ms =
+//      essentially immediately). It still must WAIT IN THE QUEUE.
+//   3. Promise callback -> goes to the MICROTASK queue.
+//   4. "D" — synchronous.
+//   5. Global code finishes -> STACK EMPTY -> event loop acts:
+//      drain microtasks first -> "C". Then one task from callback
+//      queue -> "B".
+//
+// THE LESSON INSIDE THE TRAP: `setTimeout(fn, 0)` does NOT mean "run in
+// 0ms". It means "queue me; run me when the stack is empty AND the
+// microtask queue is drained AND it's my turn." The delay parameter is a
+// MINIMUM, never a guarantee. If the stack is blocked by heavy
+// synchronous code for 10 seconds, your 0ms callback runs after 10s.
+// (This is exactly the "trust issue" Ep 17 builds on.)
+
+// ---- TRACE EXERCISE 4: event listeners live OUTSIDE your code's life ----
+
+// document.getElementById("btn")
+//   .addEventListener("click", function handler() { console.log("clicked"); });
+//
+// Mechanism: registering the listener stores `handler` in the BROWSER'S
+// machinery, attached to that event. Your script finishes; its global EC
+// pops; and the handler STILL EXISTS, waiting. Every click: browser puts
+// handler into the CALLBACK QUEUE -> event loop -> stack -> runs.
+// This is why listeners (and their closures!) hold memory until you
+// removeEventListener — a classic real-world LEAK source. (Connect to
+// Ep-16 notes Sec 7: reachable-from-roots — the browser's registry IS
+// keeping that function reachable.)
+
+
+/******************************************************************************
+ * SECTION 8 — PUTTING PART 1 AND PART 2 TOGETHER (one unified picture)
+ ******************************************************************************/
+
+// Follow one async program through EVERY mechanism in both files:
+
+console.log("start");                       // [1]
+setTimeout(function timer() {               // [2]
+  console.log("timer done");
+}, 1000);
+fetchLikeWork();                            // pretend: heavy sync loop, 3s
+console.log("end");                         // [3]
+
+function fetchLikeWork() { /* imagine 3s of synchronous looping */ }
+
+// THE FULL STORY:
+//  Phase 1 (memory): fetchLikeWork stored whole; nothing else fancy.
+//  Phase 2:
+//   [1] Global EC on stack -> "start".
+//   [2] setTimeout runs ON the stack for a microsecond — just long enough
+//       to REGISTER timer+callback with the environment — then returns.
+//       The countdown proceeds OUTSIDE the JS thread.
+//   fetchLikeWork() -> new EC pushed -> 3 SECONDS of stack occupation.
+//       Meanwhile the 1000ms timer fires at t=1s: callback moves to the
+//       CALLBACK QUEUE... and WAITS. Rule (a): busy stack = nobody enters.
+//   [3] fetchLikeWork pops -> "end" -> global code done -> stack empty.
+//   Event loop: microtasks (none) -> callback queue -> timer() pushed ->
+//       "timer done" prints at t≈3s, NOT t=1s.
+//
+// If you can narrate that trace cold, you own both files.
+
+
+/******************************************************************************
+ * SECTION 9 — SELF-CHECK (closed book; say each mechanism aloud)
+ ******************************************************************************/
+
+// 1. An execution context = memory component + code component; built in
+//    two phases (memory creation, then code execution).
+// 2. Hoisting is not magic; it is Phase 1: var -> undefined placeholder,
+//    function declarations -> stored whole, let/const -> allocated but in
+//    the TDZ.
+// 3. undefined ≠ not defined ≠ TDZ error — three different mechanisms.
+// 4. Every function CALL builds a fresh EC on the call stack; return pops
+//    and destroys it. Locals are a consequence, not a decree.
+// 5. JS is synchronous single-threaded; the ENVIRONMENT (browser/Node),
+//    not the language, supplies timers, DOM, fetch, console via the
+//    global object (window in browsers).
+// 6. Async pattern: register callback with the environment -> work happens
+//    outside the JS thread -> finished callback waits in a QUEUE.
+// 7. Event loop rule: stack empty -> drain ALL microtasks (promises) ->
+//    then ONE callback-queue task. Hence A, D, C, B — and hence
+//    setTimeout's delay is a minimum, never a promise.
+//
+// Fail any item -> return to its section, re-derive, retry closed-book.
+
+/******************************************************************************
+ * END — these notes + ep16_deep_notes.js form one picture:
+ * Ep-16 file = inside the engine. This file = inside the EC, and the
+ * environment wrapped around the engine. Next test can draw from both.
+ ******************************************************************************/
 
 // -----------------------------------------------------------------------------
 // Q1  (2 sub-parts)
