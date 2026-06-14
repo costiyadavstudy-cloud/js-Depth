@@ -373,3 +373,300 @@ repeatCollect(3, i => i * 10);   // [0, 10, 20]
  * Recurring weaknesses to drill: (1) HOF vs callback wording;
  * (2) "every expression evaluates to a value" (no 'non-real operations').
  ******************************************************************************/
+
+
+/******************************************************************************
+ *  HIGHER-ORDER FUNCTIONS QUIZ — QUESTIONS, CORRECT OUTPUTS & MECHANISMS
+ *  Companion to hof_deep_notes.js
+ *
+ *  FINAL SCORE: 88/110 -> 80%   (up from 57% on the Ep-16 engine test)
+ *  Q1 8 . Q1B 7 . Q2A 8.5 . Q2B 7.5 . Q3 9 . Q4 9 . Q5 6.5 . Q6 8 .
+ *  Q7 9.5 . Q8 9 . Q9 8
+ *
+ *  HOW TO USE: read the question, COVER the answer, solve it, then check.
+ *  The MECHANISM comments are the part that must live in your head.
+ ******************************************************************************/
+
+
+/******************************************************************************
+ * Q1 — Define a higher-order function — (8/10)
+ ******************************************************************************/
+// CONCEPT: definition of a HOF; first-class functions.
+//
+// CORRECT ANSWER: a function is higher-order if it TAKES a function as an
+//   argument OR RETURNS a function (either alone qualifies — the "OR" is
+//   essential). Possible because functions are FIRST-CLASS CITIZENS (values).
+//
+// MECHANISM: first-class functions = the LANGUAGE FEATURE (functions are
+//   values: assignable, passable, returnable). HOFs = what that feature lets
+//   you BUILD. Foundation vs construction — not the same thing.
+//
+// WHERE YOU WENT WRONG: stated first-class citizens and HOFs almost as equals
+//   — keep the causal direction sharp. Also console.log(good morning) had an
+//   UNQUOTED string -> SyntaxError (parser can't build a valid AST from a bare
+//   identifier with a space).
+
+
+/******************************************************************************
+ * Q1B — Classify four snippets — (7/10)
+ ******************************************************************************/
+function calculate_q1(fn, n) { return fn(n); }                          // (1)
+function multiplier_q1(factor){ return function(x){ return x*factor; }; } // (2)
+const nums_q1 = [1,2,3]; nums_q1.map(x => x*2);                         // (3)
+function add_q1(a, b) { return a + b; }                                 // (4)
+//
+// CORRECT ANSWERS:
+//   (1) HOF — takes a function (fn).
+//   (2) HOF — returns a function (this is the CLOSURE case).
+//   (3) the HOF is `map` (it takes a function). `nums` is an ARRAY, not a
+//       function — it CANNOT be a HOF.
+//   (4) not a HOF — takes numbers, returns a number.
+//
+// MECHANISM: in  x.y(z)  ->  x = object/data, y = method (the HOF if it
+//   takes/returns a function), z = argument/callback. The HOF is always the
+//   FUNCTION, never the data.
+//
+// WHERE YOU WENT WRONG: called `nums` (the ARRAY) the HOF in (3). The HOF is
+//   `map`. Recurring HOF-vs-data confusion — repeated again in Q9.
+
+
+/******************************************************************************
+ * Q2A — DRY violation — (8.5/10)
+ ******************************************************************************/
+// Two near-identical functions (calculateArea, calculateCircumference) with
+// the same loop scaffolding and only the per-element formula differing.
+//
+// CORRECT ANSWER: principle = DRY (Don't Repeat Yourself). Repeated (the
+//   INVARIANT): const output=[], the for loop, the push, the return.
+//   Different (the VARIANT): only the per-element formula.
+//
+// MECHANISM: separating invariant from variant makes the HOF refactor
+//   inevitable — the variant becomes a callback you pass in.
+//
+// WHERE YOU WENT WRONG: "the logic differs" is loose — name the variant
+//   concretely as "a per-element transformation that could be passed in".
+//   Also the shared parameter isn't the problem; the duplicated BODY is.
+
+
+/******************************************************************************
+ * Q2B — Refactor into one HOF — (7.5/10)
+ ******************************************************************************/
+// CORRECT ANSWER:
+function area_q2(r) { return Math.PI * r * r; }
+function circumference_q2(r) { return 2 * Math.PI * r; }
+function calculate_q2(logic, radii) {
+  const output = [];                       // const — NOT bare `output = []`
+  for (let i = 0; i < radii.length; i++) output.push(logic(radii[i]));
+  return output;
+}
+// calculate_q2(area_q2, [3,1,2]);
+//
+// WHAT THE HOF BOUGHT YOU: separates the REUSABLE STRUCTURE (loop) from the
+//   SWAPPABLE BEHAVIOR (formula) -> eliminates duplication. MAINTAINABILITY,
+//   not speed.
+//
+// MECHANISM: `logic` is a callback applied per element; adding a new
+//   operation = one tiny function, no loop rewrite.
+//
+// WHERE YOU WENT WRONG: claimed HOFs "optimize / speed up" the code — FALSE.
+//   Readability/reusability != performance (an indirect call is, if anything,
+//   slightly MORE work). Also `output = []` had no declaration keyword
+//   (creates a global / throws in strict mode); and the logic param named
+//   `radii` actually receives a single radius — name it `r`.
+
+
+/******************************************************************************
+ * Q3 — Closure via returned function — (9/10, joint-best mechanism)
+ ******************************************************************************/
+function multiplier_q3(factor){ return function(x){ return x*factor; }; }
+const double_q3 = multiplier_q3(2);
+const triple_q3 = multiplier_q3(3);
+// double_q3(5)            -> 10
+// triple_q3(5)            -> 15
+// double_q3(triple_q3(2)) -> 12   (triple(2)=6, then double(6)=12)
+//
+// CONCEPT: closures.
+//
+// MECHANISM: a closure = function + its lexical environment. After
+//   multiplier(2) returns and its EC pops, the returned function keeps a
+//   REFERENCE to `factor`, so by REACHABILITY (Ep-16 GC notes) `factor` stays
+//   alive and the GC can't collect it. double and triple are SEPARATE closures
+//   over separate `factor` values — hence no interference.
+//
+// WHERE YOU WENT WRONG: minor wording — the closure is formed AUTOMATICALLY
+//   when the inner function is CREATED (function + captured scope as one unit),
+//   not a separate object "returned". Outstanding GC connection otherwise.
+
+
+/******************************************************************************
+ * Q4 — The `once` pattern — (9/10)
+ ******************************************************************************/
+function once_q4(fn) {
+  let called = false, result;
+  return function (...args) {
+    if (!called) { called = true; result = fn(...args); }
+    return result;
+  };
+}
+const addOnce_q4 = once_q4((a, b) => a + b);
+// addOnce_q4(2, 3)     -> 5
+// addOnce_q4(10, 20)   -> 5
+// addOnce_q4(100, 200) -> 5
+//
+// CONCEPT: closures capturing variables BY REFERENCE (persistent, mutable
+//   private state).
+//
+// MECHANISM: called/result live in the closure. The closure holds LIVE
+//   REFERENCES (not frozen copies), so the inner function mutates them and the
+//   change PERSISTS between calls. Calls 2 & 3 return stale 5 because the only
+//   line using the args — `result = fn(...args)` — is inside the if-block,
+//   which is SKIPPED once called is true (`!called` evaluates to false).
+//
+// WHERE YOU WENT WRONG: only wording — said true `called` "contradicts" the if.
+//   Say "the condition evaluates to false, so the block is skipped." Control
+//   flow vocabulary, not understanding.
+
+
+/******************************************************************************
+ * Q5 — `filter` mechanics — (6.5/10)
+ ******************************************************************************/
+const nums_q5 = [1,2,3,4,5];
+const result_q5 = nums_q5.filter(n => n % 2 === 0);
+// result_q5 -> [2, 4]
+// nums_q5   -> [1, 2, 3, 4, 5]   (unchanged)
+//
+// CONCEPT: filter; non-mutating methods.
+//
+// MECHANISM: the callback returns a BOOLEAN (a test). filter KEEPS the element
+//   when true, DISCARDS when false. filter ITSELF builds the new array — the
+//   callback does not push, and does not return "the value to keep". filter is
+//   NON-MUTATING (returns a new array; originals untouched).
+//
+// PROOF YOUR MODEL WAS WRONG:
+//   [1,2,3,4,5].filter(n => n*10)  ->  [1,2,3,4,5]
+//   every n*10 is truthy -> all kept, UNCHANGED. The return value is a TEST,
+//   not data.
+//
+// WHERE YOU WENT WRONG: said the callback "returns the value that satisfies"
+//   and "pushes" it. Both false — it returns a boolean; the METHOD does the
+//   keeping.
+
+
+/******************************************************************************
+ * Q6 — `map` vs `filter` — (8/10)
+ ******************************************************************************/
+const nums_q6 = [1,2,3,4];
+// nums_q6.map(n => n * 2)     -> [2, 4, 6, 8]
+// nums_q6.filter(n => n > 2)  -> [3, 4]
+//
+// CONCEPT: the map/filter contrast.
+//
+// MECHANISM: map's callback returns a TRANSFORMED value; output length =
+//   input length. filter's callback returns a BOOLEAN; output length <= input.
+//   map does NOT mutate — use the word "transformed", not "mutated".
+//
+// THE (iii) TRAP:
+//   [1,2,3,4].map(n => n > 2)  ->  [false, false, true, true]   (NOT "no change")
+//   A comparison IS an operation; it evaluates to a boolean, and map stores
+//   that boolean as data.
+//
+// WHERE YOU WENT WRONG: predicted "no change" — assumed a comparison "isn't a
+//   real operation". Every expression evaluates to a value; map collects it.
+
+
+/******************************************************************************
+ * Q7 — `reduce` — (9.5/10, highest)
+ ******************************************************************************/
+const nums_q7 = [1,2,3,4];
+const total_q7 = nums_q7.reduce((acc, curr) => acc + curr, 0);
+// total_q7 -> 10
+//
+// CONCEPT: reduce, accumulator, initial value.
+//
+// MECHANISM (trace):
+//   iteration | acc (before) | curr | returns (acc+curr) -> next acc
+//       1      |      0       |  1   |        1
+//       2      |      1       |  2   |        3
+//       3      |      3       |  3   |        6
+//       4      |      6       |  4   |       10   <- final result
+//   acc = accumulator carried forward (each iteration's return becomes the
+//   next acc). The 0 = initial value. NO initial value -> acc starts as the
+//   FIRST element, curr as the SECOND.
+//
+// THE REAL-WORLD RULE (extension to add):
+//   [].reduce((a,c) => a+c)     -> TypeError: Reduce of empty array with no
+//                                  initial value
+//   [].reduce((a,c) => a+c, 0)  -> 0   (safe)
+//   ALWAYS pass an initial value unless you have a reason not to.
+//
+// WHERE YOU WENT WRONG: nothing on mechanism — near-perfect. Just absorb the
+//   empty-array guard.
+
+
+/******************************************************************************
+ * Q8 — Chaining + order — (9/10)
+ ******************************************************************************/
+const users_q8 = [
+  {name:"vardhan",age:26},{name:"akshay",age:30},
+  {name:"rahul",age:17},{name:"priya",age:22},
+];
+// users_q8.filter(u => u.age >= 18).map(u => u.name)
+//   -> ["vardhan","akshay","priya"]
+//
+// CONCEPT: chaining; order-dependence; silent logic bugs.
+//
+// MECHANISM: filter returns a NEW ARRAY, so map is immediately callable on it.
+//   Methods run LEFT-TO-RIGHT, each on the previous output, SEQUENTIALLY.
+//
+// ORDER SWAP (silent bug):
+//   users_q8.map(u => u.name).filter(u => u.age >= 18)  ->  []
+//   map first -> array of STRINGS -> filter reads u.age on a string ->
+//   undefined -> undefined >= 18 -> false -> every element fails -> [].
+//   NO error thrown — a SILENT LOGIC BUG (the dangerous kind in AI code).
+//
+// WHERE YOU WENT WRONG: called filter's result a "copy" — it's a NEW, SHORTER
+//   array of passing elements. Excellent undefined-trace in (iii).
+
+
+/******************************************************************************
+ * Q9 — Write your own HOF — (8/10)
+ ******************************************************************************/
+function repeat_q9(n, action) {
+  for (let j = 0; j < n; j++) action(j);
+}
+// repeat_q9(3, i => console.log("Iteration:", i))  ->  0, 1, 2
+//
+// CONCEPT: authoring a HOF; HOF vs callback; rebuilding map.
+//
+// MECHANISM: repeat is the HOF (it RECEIVES a function). action is the
+//   CALLBACK (the RECEIVED function). Extension that collects return values:
+function repeatCollect_q9(n, action) {
+  const results = [];
+  for (let j = 0; j < n; j++) results.push(action(j));  // push the RETURN VALUE
+  return results;
+}
+// repeatCollect_q9(3, i => i * 10)  ->  [0, 10, 20]
+//   Most resembles MAP — call a function per item, collect what it returns —
+//   but iterates over a COUNT (0..n-1) instead of an array's elements.
+//
+// WHERE YOU WENT WRONG: (1) called the PARAMETER the HOF — repeat is the HOF,
+//   action is the callback (same slip as Q1B). (2) said you'd push `j`; the
+//   goal is the RETURN VALUE action(j), not the index.
+
+
+/******************************************************************************
+ * TWO RECURRING WEAKNESSES TO DRILL (both precision, not understanding)
+ ******************************************************************************/
+// 1. HOF vs CALLBACK (Q1B, Q9): the HOF is the RECEIVER/RETURNER; the callback
+//    is the PASSED function. Never call the data or the parameter the HOF.
+// 2. "EVERY EXPRESSION EVALUATES TO A VALUE" (Q5, Q6): stop classifying
+//    operations as "real" vs "not real". A comparison yields a boolean;
+//    methods collect whatever the callback returns, blindly.
+//
+// STRENGTHS PROVEN: mechanism + cross-concept integration (closures <-> GC),
+//   clean reduce trace, silent-bug debugging trace, fast self-correction after
+//   a named mistake. Keep all four.
+
+/******************************************************************************
+ * END — pairs with hof_deep_notes.js (the concept notes).
+ ******************************************************************************/
